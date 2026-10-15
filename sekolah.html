@@ -578,7 +578,7 @@ input:disabled,select:disabled{opacity:.6}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 2;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 3;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -697,6 +697,7 @@ async function muatPeriode() {
     ]);
     if (id !== S.muatId) return;
     if (!d || !d.ok) { $('gridBox').innerHTML = ''; if (d && d.error !== 'sesi') tampil($('lockMsg'), d.pesan || 'Gagal memuat data.', 'bad'); return; }
+    if (d.sekolah && d.sekolah.npsn) S.sekolah.npsn = d.sekolah.npsn;
     S.siswa = d.siswa; S.bukti = d.bukti || null; S.statusBulan = st && st.ok ? st.bulan : [];
     S.v = {}; const ab = d.absen || { efektif: 0, baris: {} };
     S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha) } : { sakit: '', izin: '', alpha: '' }; });
@@ -853,7 +854,7 @@ function buildPdfDoc(rowsData, meta) {
     const pw = LH * p.w / p.h;
     doc.addImage(p.src, p.fmt, PW - MR - pw, y0, pw, LH); rop(1, { t: 'img', id: 'logoPKH', x: PW - MR - pw, y: y0, w: pw, h: LH });
     doc.setTextColor(0).setFont('helvetica', 'bold');
-    const lines = [['KEMENTERIAN SOSIAL', 11], ['DAFTAR KEHADIRAN SISWA KELUARGA PENERIMA MANFAAT (KPM)', 12.5], ['PROGRAM KELUARGA HARAPAN', 11], [pdfText(meta.sekolah), 11], ['BULAN ' + meta.bulan + ' TAHUN ' + meta.tahun, 11]];
+    const lines = [['KEMENTERIAN SOSIAL', 11], ['DAFTAR KEHADIRAN SISWA KELUARGA PENERIMA MANFAAT (KPM)', 12.5], ['PROGRAM KELUARGA HARAPAN', 11], [pdfText(meta.kop || meta.sekolah), 11], ['BULAN ' + meta.bulan + ' TAHUN ' + meta.tahun, 11]];
     let y = y0 + 3.2;
     lines.forEach(([t, sz]) => { doc.setFontSize(sz); doc.text(t, PW / 2, y, { align: 'center' }); rop(1, { t: 'text', s: t, x: PW / 2, y, size: sz, bold: true, align: 'center' }); y += 4.4; });
   }
@@ -942,7 +943,7 @@ async function bukaPdf(pra) {
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
     return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen }; });
-  const meta = { sekolah: S.sekolah.nama, bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
+  const meta = { sekolah: S.sekolah.nama, kop: S.sekolah.nama + (S.sekolah.npsn ? ' || ' + S.sekolah.npsn : ''), bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
   pdfNama = namaPdf(meta.sekolah, meta.tw, meta.bulan, meta.tahun);
   try {
     const doc = buildPdfDoc(data, meta);

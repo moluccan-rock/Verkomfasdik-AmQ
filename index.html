@@ -800,7 +800,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 8;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 9;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v1';       // salinan data terakhir yang berhasil dimuat
@@ -1301,6 +1301,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     namaSiswa: normText(pick(clean, ['NAMA SISWA'])) || 'SISWA TANPA NAMA',
                     tingkatPendidikan: pick(clean, ['TINGKAT PENDIDIKAN']) || '-',
                     pendamping: normText(pick(clean, ['NAMA PENDAMPING'])) || 'PENDAMPING PKH',
+                    npsn: (() => { const k = Object.keys(clean).find(x => x === 'NPSN') || Object.keys(clean).find(x => x.indexOf('NPSN') === 0); const v = k ? String(clean[k]).trim().replace(/\.0+$/, '') : ''; return /^[0-9A-Za-z]{4,20}$/.test(v) ? v : ''; })(),
                     kecamatan,
                     periodePenyaluran: normPeriode(pick(clean, ['PERIODE PENYALURAN', 'TAHAP', 'PERIODE']))
                 };
@@ -1560,7 +1561,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             const selectedBulan = elFilterBulan.value.toUpperCase();
             const currentYear = new Date().getFullYear();
-            document.getElementById('printHeaderSekolah').textContent = vSek;
+            const npsnSek = (printData.find(r => r.npsn) || {}).npsn || '';
+            const kopSekolah = vSek + (npsnSek ? ' || ' + npsnSek : '');
+            document.getElementById('printHeaderSekolah').textContent = kopSekolah;
             document.getElementById('printHeaderTanggal').textContent = `BULAN ${selectedBulan} TAHUN ${currentYear}`;
 
             const printRowsHtml = printData.map((r, i) => `
@@ -1590,7 +1593,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return;
             }
 
-            const meta = { sekolah: vSek, periode: vPer, bulan: selectedBulan, tahun: currentYear, fileName: buildPdfName(vSek, vPer, elFilterBulan.value, currentYear) };
+            const meta = { sekolah: vSek, kop: kopSekolah, periode: vPer, bulan: selectedBulan, tahun: currentYear, fileName: buildPdfName(vSek, vPer, elFilterBulan.value, currentYear) };
             try {
                 await openPdfPreview(printData, meta);
             } catch (e) {
@@ -1650,7 +1653,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 rop(1, { t: 'img', id: 'logoPKH', x: PW - MR - pw, y: y0, w: pw, h: LH });
                 doc.setTextColor(0).setFont('helvetica', 'bold');
                 const lines = [['KEMENTERIAN SOSIAL', 11], ['DAFTAR KEHADIRAN SISWA KELUARGA PENERIMA MANFAAT (KPM)', 12.5], ['PROGRAM KELUARGA HARAPAN', 11],
-                    [pdfText(meta.sekolah), 11], ['BULAN ' + meta.bulan + ' TAHUN ' + meta.tahun, 11]];
+                    [pdfText(meta.kop || meta.sekolah), 11], ['BULAN ' + meta.bulan + ' TAHUN ' + meta.tahun, 11]];
                 let y = y0 + 3.2;
                 lines.forEach(([t, sz]) => { doc.setFontSize(sz); doc.text(t, PW / 2, y, { align: 'center' }); rop(1, { t: 'text', s: t, x: PW / 2, y, size: sz, bold: true, align: 'center' }); y += 4.4; });
             }
