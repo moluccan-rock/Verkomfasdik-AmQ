@@ -528,12 +528,13 @@ input:disabled,select:disabled{opacity:.6}
       </div>
       <div class="sum" id="sum"></div>
       <div id="gridBox"></div>
+      <button class="btn ghost" id="btnPratinjau" onclick="pratinjau()" style="width:100%;margin-top:12px">Pratinjau Absen (lihat dulu sebelum disimpan)</button>
     </div>
 
     <div class="card">
       <h2>3. Cetak, tanda tangan, unggah</h2>
       <ol style="margin:0 0 12px;padding-left:20px;color:var(--mut);font-size:13px">
-        <li>Ketuk <b>Cetak / Simpan PDF</b>, lalu cetak (iPad: ketuk <b>Bagikan</b> → <b>Cetak</b>).</li>
+        <li>Ketuk <b>Pratinjau Absen</b> untuk melihat hasilnya, lalu <b>Simpan Absen</b>. Setelah itu ketuk <b>Cetak / Simpan PDF</b> dan cetak (iPad: ketuk <b>Bagikan</b> → <b>Cetak</b>).</li>
         <li>Kepala sekolah menandatangani dan membubuhkan cap.</li>
         <li>Pindai (iPad: aplikasi <b>Catatan</b> / <b>Berkas</b> → <b>Pindai Dokumen</b>), simpan sebagai <b>PDF</b>.</li>
         <li>Pilih file PDF di bawah, lalu ketuk <b>Unggah Bukti</b>. File masuk otomatis ke folder tim.</li>
@@ -555,13 +556,14 @@ input:disabled,select:disabled{opacity:.6}
 <div id="pdfPreview">
   <div class="top">
     <div class="nm"><span id="pvName"></span><small id="pvInfo"></small></div>
-    <button class="btn ok" onclick="savePdfToDevice()">Simpan PDF ke Perangkat</button>
+    <button class="btn ok hide" id="pvSimpan" onclick="simpanDariPratinjau()">Simpan Absen</button>
+    <button class="btn ok" id="pvSave" onclick="savePdfToDevice()">Simpan PDF ke Perangkat</button>
     <button class="btn hide" id="pvShare" onclick="sharePdf()" style="background:#0284c7">Bagikan / Cetak</button>
-    <button class="btn" onclick="cetakPdf()">Cetak</button>
+    <button class="btn" id="pvCetak" onclick="cetakPdf()">Cetak</button>
     <button class="btn ghost" style="color:#fff;border-color:#475569" onclick="closePdfPreview()">Tutup</button>
   </div>
   <div id="pdfPages"></div>
-  <div class="foot">Pratinjau menampilkan seluruh halaman yang akan disimpan/dicetak. Di iPad, untuk mencetak ketuk <b>Bagikan / Cetak</b> lalu pilih <b>Cetak</b>.</div>
+  <div class="foot"><b id="pvNote" class="hide" style="display:block;color:#fde68a;margin-bottom:4px">PRATINJAU: absen BELUM disimpan. Periksa isinya, lalu ketuk Simpan Absen.</b>Pratinjau menampilkan seluruh halaman yang akan disimpan/dicetak. Di iPad, untuk mencetak ketuk <b>Bagikan / Cetak</b> lalu pilih <b>Cetak</b>.</div>
 </div>
 
 <div id="modal"><div class="box"><h3 id="mTitle"></h3><p id="mBody"></p><div class="acts"><button class="btn" onclick="tutupModal()">Mengerti</button></div></div></div>
@@ -576,7 +578,7 @@ input:disabled,select:disabled{opacity:.6}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 1;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 2;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -925,12 +927,17 @@ function renderPdfPages() {
 let pdfResizeTimer = null;
 window.addEventListener('resize', () => { if (!$('pdfPreview').classList.contains('on')) return; clearTimeout(pdfResizeTimer); pdfResizeTimer = setTimeout(renderPdfPages, 150); });
 
-async function cetak() {
+function modeBukaPdf(pra) {
+  $('pvNote').classList.toggle('hide', !pra); $('pvSimpan').classList.toggle('hide', !pra);
+  $('pvSave').classList.toggle('hide', !!pra); $('pvCetak').classList.toggle('hide', !!pra);
+  if (pra) $('pvShare').classList.add('hide');
+}
+async function bukaPdf(pra) {
   if (!window.jspdf || !window.jspdf.jsPDF) { modal('PDF belum siap', 'Pustaka PDF gagal dimuat. Muat ulang halaman lalu coba lagi.'); return; }
   if (!logosOk()) { modal('Logo tidak terbaca', 'Logo pada kop gagal dibaca browser, jadi pembuatan PDF dibatalkan agar absen tidak tercetak tanpa logo. Muat ulang halaman lalu coba lagi.'); return; }
   if (!S.terkunci) {
     const err = periksaForm(); if (err) { modal('Belum lengkap', err); return; }
-    if (S.kotor || !S.tersimpan) { if (!(await simpan(true))) return; }
+    if (!pra && (S.kotor || !S.tersimpan)) { if (!(await simpan(true))) return; }
   }
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
@@ -943,8 +950,15 @@ async function cetak() {
     pdfPageCount = doc.internal.getNumberOfPages();
     $('pvName').textContent = pdfNama + '.pdf'; $('pvInfo').textContent = data.length + ' siswa · ' + pdfPageCount + ' halaman';
     try { const f = new File([pdfBlob], pdfNama + '.pdf', { type: 'application/pdf' }); $('pvShare').classList.toggle('hide', !(navigator.canShare && navigator.canShare({ files: [f] }))); } catch (x) { $('pvShare').classList.add('hide'); }
+    modeBukaPdf(pra);
     $('pdfPreview').classList.add('on'); renderPdfPages();
   } catch (x) { console.error(x); modal('PDF gagal dibuat', 'Pembuatan PDF gagal: ' + (x && x.message ? x.message : x)); }
+}
+function cetak() { return bukaPdf(false); }
+function pratinjau() { return bukaPdf(!S.terkunci && (S.kotor || !S.tersimpan)); }
+async function simpanDariPratinjau() {
+  if (!(await simpan(false))) return;
+  closePdfPreview(); await bukaPdf(false);
 }
 function closePdfPreview() { $('pdfPreview').classList.remove('on'); $('pdfPages').innerHTML = ''; }
 function savePdfToDevice() { if (!pdfBlob) return; const a = document.createElement('a'); a.href = pdfUrl; a.download = pdfNama + '.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
