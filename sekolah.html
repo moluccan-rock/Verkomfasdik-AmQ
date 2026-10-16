@@ -445,10 +445,10 @@ input:disabled,select:disabled{opacity:.6}
 .chip{font-size:11px;font-weight:700;border-radius:8px;padding:5px 8px;border:1px solid var(--line);color:var(--mut)}
 .chip.s1{background:var(--infobg);color:var(--pri2);border-color:transparent}.chip.s2{background:var(--okbg);color:var(--ok);border-color:transparent}.chip.cur{outline:2px solid var(--pri2)}
 .grid{display:grid;column-gap:6px;row-gap:0;align-items:center}
-.gh,.gr{grid-template-columns:30px minmax(140px,1fr) calc(var(--wf) * 3 + 12px) 76px 132px}
+.gh,.gr{grid-template-columns:30px minmax(140px,1fr) calc(var(--wf) * 3 + 12px) 70px 220px}
 :root{--wf:106px}
 .gh{font-size:11px;font-weight:800;color:var(--mut);padding:6px 8px;position:sticky;top:calc(56px + env(safe-area-inset-top));background:var(--card);z-index:5;border-bottom:1px solid var(--line);margin-bottom:6px}
-.gh .flds{display:grid;grid-template-columns:repeat(3,var(--wf));gap:6px;text-align:center}
+.gh .flds{grid-area:auto;display:grid;grid-template-columns:repeat(3,var(--wf));gap:6px;text-align:center}
 .gr{padding:8px;margin:0 0 6px;border:1px solid var(--line);border-radius:12px;grid-template-areas:"no nm fl pc kt" "kp kp kp kp kp"}
 .gr .c-no{grid-area:no;font-size:13px;color:var(--mut);font-weight:700}.gr .c-nm{grid-area:nm;min-width:0}
 .gr .nm{font-weight:600;font-size:14px;word-break:break-word}.gr .mt{font-size:11px;color:var(--mut)}
@@ -461,7 +461,7 @@ input:disabled,select:disabled{opacity:.6}
 .sb:active{filter:brightness(.9)}.sb:disabled{opacity:.35;cursor:not-allowed}
 .gr .pc{grid-area:pc;text-align:center;font-size:13px;font-weight:800}.gr .pc small{display:block;font-weight:500;color:var(--mut);font-size:10px;line-height:1.25}
 .gr .pc small.lw{color:var(--bad);font-weight:800}
-.ktsel{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;font-size:14px;font-weight:600;padding:8px 10px;touch-action:manipulation;-webkit-appearance:menulist;appearance:auto}
+.ktsel{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;font-size:13px;font-weight:600;padding:8px 10px;touch-action:manipulation;-webkit-appearance:menulist;appearance:auto}
 .ktx{grid-area:kp;width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;font-size:14px;padding:8px 10px;display:none}
 .ktx.open{display:block}
 .ktb{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:transparent;color:var(--pri2);border-radius:11px;font-size:12px;font-weight:700;padding:6px 8px;cursor:pointer;line-height:1.2;touch-action:manipulation}
@@ -610,7 +610,7 @@ input,select{scroll-margin:130px 0 150px}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 5;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 6;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -787,6 +787,7 @@ function isiPilihanKelas() {
   if ([...$('selKelas').options].some(o => o.value === cur)) $('selKelas').value = cur;
 }
 $('selKelas').addEventListener('change', renderGrid);
+const nisnTampil = n => String(n == null ? '' : n).replace(/^[\s'’`]+/, '');   // buang tanda ' di depan NISN dari Google Sheet
 const angka = v => { const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; };
 const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };   // tidak dihitung absennya
 const KET_LAIN = 'LAIN';   // "Lainnya": catatan manual, absen tetap dihitung
@@ -816,10 +817,10 @@ function barisHtml(s, no) {
   const v = S.v[s.nisn], nm = esc(s.nama);
   const fld = (f, lb) => `<div class="fl"><span class="lb">${lb}</span><div class="st"><button type="button" class="sb" data-act="min" data-g="${f}" aria-label="Kurangi ${lb.toLowerCase()} ${nm}">&minus;</button><input inputmode="numeric" pattern="[0-9]*" maxlength="2" data-f="${f}" value="${esc(v[f])}" placeholder="0" aria-label="${lb} ${nm}"><button type="button" class="sb" data-act="plus" data-g="${f}" aria-label="Tambah ${lb.toLowerCase()} ${nm}">+</button></div></div>`;
   return `<div class="grid gr" data-n="${esc(s.nisn)}"><div class="c-no">${no}</div>
-    <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(s.nisn)}</div></div>
+    <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(nisnTampil(s.nisn))}</div></div>
     <div class="flds">${fld('sakit', 'Sakit')}${fld('izin', 'Izin')}${fld('alpha', 'Alpha')}</div>
     <div class="pc" data-pc></div>
-    <select class="ktsel" data-ks aria-label="Keterangan ${nm}"><option value="">Keterangan (kosongkan bila tidak ada)</option>${Object.keys(KET).map(k => `<option value="${k}">${esc(KET[k])}</option>`).join('')}<option value="LAIN">Lainnya (isi sendiri)...</option></select>
+    <select class="ktsel" data-ks aria-label="Keterangan ${nm}"><option value="">Keterangan</option>${Object.keys(KET).map(k => `<option value="${k}">${esc(KET[k])}</option>`).join('')}<option value="LAIN">Lainnya (isi sendiri)...</option></select>
     <input type="text" class="ktx" data-kx maxlength="80" placeholder="Tulis keterangan..." aria-label="Keterangan lainnya ${nm}"></div>`;
 }
 function renderGrid() {
@@ -925,8 +926,8 @@ function buildPdfDoc(rowsData, meta) {
   const PW = 297, PH = 210, ML = 12, MR = 12, MT = 10, MB = 10, SIG_H = 50, GAP = 4;
   const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const rows = rowsData.map((r, i) => r.ket
-    ? [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)), '-', '-', '-', '-', '-', pdfText(r.pendamping), pdfText(r.ket)]
-    : [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
+    ? [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)), '-', '-', '-', '-', '-', pdfText(r.pendamping), pdfText(r.ket)]
+    : [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
        String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping),
        pdfText([r.rendah ? 'TIDAK KOMITMEN' : '', r.catatan || ''].filter(Boolean).join(' - '))]);
   const head = [[

@@ -801,7 +801,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 11;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 12;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1297,7 +1297,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return {
                     no: clean['NO'] || (index + 1),
                     namaPengurus: normText(pick(clean, ['NAMA PENGURUS'])) || '-',
-                    nisn: pick(clean, ['NISN']) || '-',
+                    nisn: String(pick(clean, ['NISN']) || '').replace(/^[\s'’`]+/, '') || '-',
                     sekolah: normText(pick(clean, ['NAMA SEKOLAH'])) || 'SEKOLAH LAINNYA',
                     namaSiswa: normText(pick(clean, ['NAMA SISWA'])) || 'SISWA TANPA NAMA',
                     tingkatPendidikan: pick(clean, ['TINGKAT PENDIDIKAN']) || '-',
