@@ -680,6 +680,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div id="viewDatabase" class="tab-content hidden flex-col min-h-0 glass-card rounded-3xl overflow-hidden shadow-xl">
             <div class="p-4 sm:p-5 border-b border-slate-200/50 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center bg-white/50 dark:bg-black/20 gap-3.5 backdrop-blur-md shrink-0">
                 <h3 class="text-sm font-bold text-indigo-700 dark:text-indigo-200 uppercase tracking-wide"><i class="fa-solid fa-database mr-2"></i> Database Siswa Terdaftar (Live Sheet)</h3>
+                <button type="button" id="btnUnduhCsv" onclick="unduhCsv()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow w-full sm:w-auto" title="Unduh data siswa sesuai filter yang dipilih"><i class="fa-solid fa-file-csv"></i> Unduh CSV (sesuai filter)</button>
                 <div class="relative w-full sm:w-80">
                     <i class="fa-solid fa-search absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                     <input type="text" id="searchInput" placeholder="Cari NISN, Nama Siswa, Sekolah..." class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl glass-input focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-inner">
@@ -801,7 +802,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 12;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 13;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1439,6 +1440,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (matches.length > MAX_ROWS_RENDER) info += ' — gunakan kotak pencarian/filter untuk mempersempit';
             document.getElementById('tableInfo').textContent = info;
         }
+
+        // =================== UNDUH CSV (sesuai filter yang sedang dipilih) ===================
+        function csvSel(v) {
+            let s = String(v == null ? '' : v).replace(/\r?\n/g, ' ');
+            if (/^[=+\-@\t]/.test(s)) s = "'" + s;                 // cegah rumus tak sengaja saat dibuka di Excel/Sheets
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        function csvTeks(v) { return '="' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }   // NISN tetap teks (tidak jadi 3,2E+09)
+        function namaBerkasCsv() {
+            const bagian = [];
+            if (elFilterSekolah.value !== 'ALL') bagian.push(elFilterSekolah.value);
+            else if (elFilterPendamping.value !== 'ALL') bagian.push('PENDAMPING ' + elFilterPendamping.value);
+            else if (elFilterKecamatan.value !== 'ALL') bagian.push(elFilterKecamatan.value);
+            else bagian.push('SEMUA SEKOLAH');
+            if (elFilterPeriode.value !== 'ALL') bagian.push(elFilterPeriode.value);
+            return ('DATA SISWA ' + bagian.join(' ')).replace(/[\\\/:*?"<>|]/g, '-').replace(/\s+/g, '_').toUpperCase() + '.csv';
+        }
+        window.unduhCsv = function () {
+            const search = elSearchInput.value.trim().toLowerCase();
+            const rows = filteredData.filter(r => !search || r.namaSiswa.toLowerCase().includes(search) || String(r.nisn).toLowerCase().includes(search) || r.sekolah.toLowerCase().includes(search));
+            if (!rows.length) { showModal('Tidak Ada Data', 'Tidak ada baris yang cocok dengan filter saat ini, jadi belum ada yang bisa diunduh. Ubah filter lalu coba lagi.', 'warning'); return; }
+            const head = ['NO', 'NISN', 'NAMA SISWA', 'NAMA SEKOLAH', 'PERIODE', 'TINGKAT', 'KECAMATAN', 'NAMA PENDAMPING'];
+            const lines = [head.map(csvSel).join(';')];
+            rows.forEach((r, i) => lines.push([String(i + 1), csvTeks(r.nisn === '-' ? '' : r.nisn), csvSel(r.namaSiswa), csvSel(r.sekolah), csvSel(r.periodePenyaluran), csvSel(kelasAngka(r.tingkatPendidikan)), csvSel(r.kecamatan), csvSel(r.pendamping)].join(';')));
+            // pemisah titik koma + BOM UTF-8: terbuka rapi di Excel (pengaturan Indonesia) dan Google Sheets
+            const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob), a = document.createElement('a');
+            a.href = url; a.download = namaBerkasCsv(); document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+        };
 
         // =================== GRAFIK ===================
         function updateCharts() {

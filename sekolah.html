@@ -474,8 +474,9 @@ input:disabled,select:disabled{opacity:.6}
 .gr.low{border:2px solid var(--bad);padding:7px;background:var(--badbg);box-shadow:inset 0 3px 14px rgba(220,38,38,.30),inset 0 0 0 1px rgba(220,38,38,.25)}
 .gr.low .st,.gr.err .st{border-color:var(--bad);box-shadow:inset 0 2px 7px rgba(220,38,38,.38)}
 .gr.low .pc,.gr.err .pc{color:var(--bad)}
-.gr.ketx{background:var(--infobg)}.gr.ketx .flds{opacity:.4}
+.gr.ketx{background:var(--infobg)}
 .gr.ketx .ktsel{border-color:var(--pri2);background:var(--infobg)}
+.gr.low.ketx{background:var(--badbg)}
 .hint{font-size:12px;color:var(--mut);margin:0 0 8px}
 .kelas{font-size:12px;font-weight:800;color:var(--pri2);padding:10px 0 4px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
@@ -610,7 +611,7 @@ input,select{scroll-margin:130px 0 150px}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 6;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 7;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -732,7 +733,7 @@ async function muatPeriode() {
     if (d.sekolah && d.sekolah.npsn) S.sekolah.npsn = d.sekolah.npsn;
     S.siswa = d.siswa; S.bukti = d.bukti || null; S.statusBulan = st && st.ok ? st.bulan : [];
     S.v = {}; const ab = d.absen || { efektif: 0, baris: {} };
-    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? ((b.ket && b.ket !== 'LAIN') ? { sakit: '', izin: '', alpha: '', ket: b.ket, catatan: '' } : { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha), ket: b.ket || '', catatan: b.catatan || '' }) : { sakit: '', izin: '', alpha: '', ket: '', catatan: '' }; });
+    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? { sakit: b.sakit ? String(b.sakit) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.sakit)), izin: b.izin ? String(b.izin) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.izin)), alpha: b.alpha ? String(b.alpha) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.alpha)), ket: b.ket || '', catatan: b.catatan || '' } : { sakit: '', izin: '', alpha: '', ket: '', catatan: '' }; });
     S.efektif = ab.efektif ? String(ab.efektif) : '';
     S.tersimpan = Object.keys(ab.baris).length > 0; S.kotor = false;
     if (ab.pengisi && !$('inPengisi').value) $('inPengisi').value = ab.pengisi;
@@ -794,13 +795,13 @@ const KET_LAIN = 'LAIN';   // "Lainnya": catatan manual, absen tetap dihitung
 const BATAS_HADIR = 85;
 function hitungBaris(n) {
   const e = angka(S.efektif), v = S.v[n] || {};
-  if (v.ket && v.ket !== KET_LAIN) return { ket: v.ket, tidak: 0, salah: false, hadir: null, persen: null, rendah: false };
+  const ex = !!(v.ket && v.ket !== KET_LAIN);   // lulus/pindah/dll: tidak ikut rata-rata, tetapi bila ada angka absen tetap diperiksa
   const tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
   const persen = e > 0 ? Math.round(hadir * 1000 / e) / 10 : null, salah = e > 0 && tidak > e;
-  return { ket: '', tidak, salah, hadir, persen, rendah: !salah && persen !== null && persen < BATAS_HADIR };
+  return { ket: ex ? v.ket : '', tidak, salah, hadir, persen, rendah: !salah && persen !== null && persen < BATAS_HADIR };
 }
 function pcHtml(h) {
-  if (h.ket) return '-<small>tidak dihitung</small>';
+  if (h.ket && h.tidak === 0) return '-<small>tidak dihitung</small>';
   if (h.persen === null) return '-';
   return String(h.persen).replace('.', ',') + '%<small>hadir ' + h.hadir + '</small>' + (h.rendah ? '<small class="lw">di bawah ' + BATAS_HADIR + '%</small>' : '');
 }
@@ -811,7 +812,7 @@ function refreshRow(row) {
   const sel = row.querySelector('.ktsel'); sel.value = v.ket || ''; sel.disabled = S.terkunci;
   const tx = row.querySelector('.ktx'); tx.classList.toggle('open', v.ket === KET_LAIN); tx.disabled = S.terkunci;
   if (document.activeElement !== tx) tx.value = v.catatan || '';
-  row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci || !!h.ket; });
+  row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci; });
 }
 function barisHtml(s, no) {
   const v = S.v[s.nisn], nm = esc(s.nama);
@@ -845,7 +846,7 @@ $('gridBox').addEventListener('input', e => {
 $('gridBox').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const row = b.closest('.gr'), n = row.dataset.n, v = S.v[n];
-  if (S.terkunci || (v.ket && v.ket !== KET_LAIN)) return;
+  if (S.terkunci) return;
   const f = b.dataset.g, cur = angka(v[f]), ef = angka(S.efektif);
   if (b.dataset.act === 'plus') { if (ef > 0 && hitungBaris(n).tidak >= ef) return; v[f] = String(Math.min(31, cur + 1)); }
   else v[f] = cur > 0 ? String(cur - 1) : '';
@@ -870,7 +871,7 @@ $('inEfektif').addEventListener('input', e => { e.target.value = e.target.value.
 $('inPengisi').addEventListener('input', e => store.set('sk_pengisi', e.target.value));
 function ringkas() {
   const e = angka(S.efektif); let n = 0, salah = 0, total = 0, isi = 0, rendah = 0, ket = 0;
-  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.ket) { ket++; return; } if (h.salah) salah++; if (h.rendah) rendah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
+  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.ket) { ket++; if (h.rendah) rendah++; return; } if (h.salah) salah++; if (h.rendah) rendah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
   $('sum').innerHTML = `<span>Siswa: <b>${n}</b></span><span>Hari efektif: <b>${e || '-'}</b></span><span>Rata-rata kehadiran: <b>${isi ? (Math.round(total / isi * 10) / 10).toString().replace('.', ',') + '%' : '-'}</b></span>`
     + (ket ? `<span>Keterangan: <b>${ket}</b> siswa</span>` : '')
     + (rendah ? `<span style="color:var(--bad)">Di bawah ${BATAS_HADIR}%: <b>${rendah}</b> siswa</span>` : '')
@@ -925,11 +926,13 @@ function buildPdfDoc(rowsData, meta) {
   const { jsPDF } = window.jspdf;
   const PW = 297, PH = 210, ML = 12, MR = 12, MT = 10, MB = 10, SIG_H = 50, GAP = 4;
   const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const rows = rowsData.map((r, i) => r.ket
-    ? [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)), '-', '-', '-', '-', '-', pdfText(r.pendamping), pdfText(r.ket)]
-    : [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
-       String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping),
-       pdfText([r.rendah ? 'TIDAK KOMITMEN' : '', r.catatan || ''].filter(Boolean).join(' - '))]);
+  const rows = rowsData.map((r, i) => {
+    const tampil = !r.ket || r.ada;   // siswa berketerangan tanpa angka absen: strip (-)
+    const ketTeks = [r.rendah ? 'TIDAK KOMITMEN' : '', r.ket || '', r.catatan || ''].filter(Boolean).join(' - ');
+    return [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
+      tampil ? String(r.efektif) : '-', tampil ? String(r.sakit) : '-', tampil ? String(r.izin) : '-', tampil ? String(r.alpha) : '-',
+      tampil ? String(r.persen).replace('.', ',') + '%' : '-', pdfText(r.pendamping), pdfText(ketTeks)];
+  });
   const head = [[
     { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 }, { content: 'NAMA SISWA', rowSpan: 2 }, { content: 'KELAS', rowSpan: 2 },
     { content: 'KEGIATAN\nEFEKTIF\n(HARI)', rowSpan: 2 }, { content: 'REKAP ABSENSI', colSpan: 3 }, { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }, { content: 'KETERANGAN', rowSpan: 2 }
@@ -1040,7 +1043,7 @@ async function bukaPdf(pra) {
   }
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
-    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, rendah: !!h.rendah, ket: (v.ket && v.ket !== KET_LAIN) ? KET[v.ket].toUpperCase() : '', catatan: v.ket === KET_LAIN ? String(v.catatan || '').trim().toUpperCase() : '' }; });
+    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, rendah: !!h.rendah, ada: h.tidak > 0, ket: (v.ket && v.ket !== KET_LAIN) ? KET[v.ket].toUpperCase() : '', catatan: v.ket === KET_LAIN ? String(v.catatan || '').trim().toUpperCase() : '' }; });
   const meta = { sekolah: S.sekolah.nama, kop: S.sekolah.nama + (S.sekolah.npsn ? ' || ' + S.sekolah.npsn : ''), bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
   pdfNama = namaPdf(meta.sekolah, meta.tw, meta.bulan, meta.tahun);
   try {
