@@ -461,6 +461,9 @@ input:disabled,select:disabled{opacity:.6}
 .sb:active{filter:brightness(.9)}.sb:disabled{opacity:.35;cursor:not-allowed}
 .gr .pc{grid-area:pc;text-align:center;font-size:13px;font-weight:800}.gr .pc small{display:block;font-weight:500;color:var(--mut);font-size:10px;line-height:1.25}
 .gr .pc small.lw{color:var(--bad);font-weight:800}
+.ktsel{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;font-size:14px;font-weight:600;padding:8px 10px;touch-action:manipulation;-webkit-appearance:menulist;appearance:auto}
+.ktx{grid-area:kp;width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;font-size:14px;padding:8px 10px;display:none}
+.ktx.open{display:block}
 .ktb{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:transparent;color:var(--pri2);border-radius:11px;font-size:12px;font-weight:700;padding:6px 8px;cursor:pointer;line-height:1.2;touch-action:manipulation}
 .ktp{grid-area:kp;display:none;margin-top:8px;gap:6px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 .ktp.open{display:grid}
@@ -472,7 +475,7 @@ input:disabled,select:disabled{opacity:.6}
 .gr.low .st,.gr.err .st{border-color:var(--bad);box-shadow:inset 0 2px 7px rgba(220,38,38,.38)}
 .gr.low .pc,.gr.err .pc{color:var(--bad)}
 .gr.ketx{background:var(--infobg)}.gr.ketx .flds{opacity:.4}
-.gr.ketx .ktb{background:var(--pri);color:#fff;border-color:transparent}
+.gr.ketx .ktsel{border-color:var(--pri2);background:var(--infobg)}
 .hint{font-size:12px;color:var(--mut);margin:0 0 8px}
 .kelas{font-size:12px;font-weight:800;color:var(--pri2);padding:10px 0 4px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
@@ -520,8 +523,8 @@ input,select{scroll-margin:130px 0 150px}
   <section id="vLogin" class="card">
     <h2>Masuk</h2>
     <p style="margin:0 0 14px;color:var(--mut);font-size:13px">Masukkan <b>kode sekolah</b> dan <b>PIN</b> yang diberikan oleh tim Verkom Fasdik.</p>
-    <div style="margin-bottom:12px"><label for="inKode">Kode sekolah</label><input id="inKode" autocapitalize="characters" autocomplete="username" placeholder="contoh: SKL001"></div>
-    <div style="margin-bottom:14px"><label for="inPin">PIN</label><input id="inPin" type="password" inputmode="text" autocomplete="current-password" placeholder="PIN sekolah"></div>
+    <div style="margin-bottom:12px"><label for="inKode">Kode sekolah</label><input id="inKode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="contoh: SKL001"></div>
+    <div style="margin-bottom:14px"><label for="inPin">PIN</label><input id="inPin" type="password" inputmode="text" autocomplete="new-password" name="pin-sekolah-tidak-disimpan" placeholder="PIN sekolah"></div>
     <div id="loginMsg" class="msg bad hide"></div>
     <button id="btnMasuk" class="btn" style="width:100%" onclick="masuk()">Masuk</button>
   </section>
@@ -607,7 +610,7 @@ input,select{scroll-margin:130px 0 150px}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 4;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 5;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -729,7 +732,7 @@ async function muatPeriode() {
     if (d.sekolah && d.sekolah.npsn) S.sekolah.npsn = d.sekolah.npsn;
     S.siswa = d.siswa; S.bukti = d.bukti || null; S.statusBulan = st && st.ok ? st.bulan : [];
     S.v = {}; const ab = d.absen || { efektif: 0, baris: {} };
-    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? (b.ket ? { sakit: '', izin: '', alpha: '', ket: b.ket } : { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha), ket: '' }) : { sakit: '', izin: '', alpha: '', ket: '' }; });
+    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? ((b.ket && b.ket !== 'LAIN') ? { sakit: '', izin: '', alpha: '', ket: b.ket, catatan: '' } : { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha), ket: b.ket || '', catatan: b.catatan || '' }) : { sakit: '', izin: '', alpha: '', ket: '', catatan: '' }; });
     S.efektif = ab.efektif ? String(ab.efektif) : '';
     S.tersimpan = Object.keys(ab.baris).length > 0; S.kotor = false;
     if (ab.pengisi && !$('inPengisi').value) $('inPengisi').value = ab.pengisi;
@@ -750,7 +753,7 @@ function pulihkanDraft() {
   try {
     const d = JSON.parse(raw); let ada = false;
     if (d.efektif !== undefined && d.efektif !== S.efektif) { S.efektif = d.efektif; ada = true; }
-    Object.keys(d.v || {}).forEach(n => { if (S.v[n]) ['sakit', 'izin', 'alpha', 'ket'].forEach(f => { if (d.v[n][f] !== undefined && d.v[n][f] !== S.v[n][f]) { S.v[n][f] = d.v[n][f]; ada = true; } }); });
+    Object.keys(d.v || {}).forEach(n => { if (S.v[n]) ['sakit', 'izin', 'alpha', 'ket', 'catatan'].forEach(f => { if (d.v[n][f] !== undefined && d.v[n][f] !== S.v[n][f]) { S.v[n][f] = d.v[n][f]; ada = true; } }); });
     if (ada) { S.kotor = true; tampil($('draftMsg'), 'Isian yang belum disimpan dipulihkan dari perangkat ini. Ketuk Simpan Absen untuk mengirimnya.', 'info'); }
     else store.del(kunciDraft());
   } catch (e) { store.del(kunciDraft()); }
@@ -785,11 +788,12 @@ function isiPilihanKelas() {
 }
 $('selKelas').addEventListener('change', renderGrid);
 const angka = v => { const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; };
-const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };
+const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };   // tidak dihitung absennya
+const KET_LAIN = 'LAIN';   // "Lainnya": catatan manual, absen tetap dihitung
 const BATAS_HADIR = 85;
 function hitungBaris(n) {
   const e = angka(S.efektif), v = S.v[n] || {};
-  if (v.ket) return { ket: v.ket, tidak: 0, salah: false, hadir: null, persen: null, rendah: false };
+  if (v.ket && v.ket !== KET_LAIN) return { ket: v.ket, tidak: 0, salah: false, hadir: null, persen: null, rendah: false };
   const tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
   const persen = e > 0 ? Math.round(hadir * 1000 / e) / 10 : null, salah = e > 0 && tidak > e;
   return { ket: '', tidak, salah, hadir, persen, rendah: !salah && persen !== null && persen < BATAS_HADIR };
@@ -799,14 +803,13 @@ function pcHtml(h) {
   if (h.persen === null) return '-';
   return String(h.persen).replace('.', ',') + '%<small>hadir ' + h.hadir + '</small>' + (h.rendah ? '<small class="lw">di bawah ' + BATAS_HADIR + '%</small>' : '');
 }
-function ketLabel(k, buka) { return (k ? '&#10003; ' + esc(KET[k]) : 'Keterangan') + (buka ? ' &#9652;' : ' &#9662;'); }
 function refreshRow(row) {
   const n = row.dataset.n, v = S.v[n], h = hitungBaris(n);
   row.classList.toggle('err', h.salah); row.classList.toggle('low', h.rendah); row.classList.toggle('ketx', !!h.ket);
   row.querySelector('[data-pc]').innerHTML = pcHtml(h);
-  const tb = row.querySelector('.ktb'); tb.innerHTML = ketLabel(v.ket, S.buka[n]); tb.setAttribute('aria-expanded', S.buka[n] ? 'true' : 'false');
-  row.querySelector('.ktp').classList.toggle('open', !!S.buka[n]);
-  row.querySelectorAll('.kc').forEach(l => { const on = l.dataset.k === v.ket; l.classList.toggle('on', on); l.querySelector('input').checked = on; l.querySelector('input').disabled = S.terkunci; });
+  const sel = row.querySelector('.ktsel'); sel.value = v.ket || ''; sel.disabled = S.terkunci;
+  const tx = row.querySelector('.ktx'); tx.classList.toggle('open', v.ket === KET_LAIN); tx.disabled = S.terkunci;
+  if (document.activeElement !== tx) tx.value = v.catatan || '';
   row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci || !!h.ket; });
 }
 function barisHtml(s, no) {
@@ -816,8 +819,8 @@ function barisHtml(s, no) {
     <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(s.nisn)}</div></div>
     <div class="flds">${fld('sakit', 'Sakit')}${fld('izin', 'Izin')}${fld('alpha', 'Alpha')}</div>
     <div class="pc" data-pc></div>
-    <button type="button" class="ktb" data-act="ket" aria-label="Keterangan ${nm}"></button>
-    <div class="ktp">${Object.keys(KET).map(k => `<label class="kc" data-k="${k}"><input type="checkbox" data-k="${k}"><span>${esc(KET[k])}</span></label>`).join('')}</div></div>`;
+    <select class="ktsel" data-ks aria-label="Keterangan ${nm}"><option value="">Keterangan (kosongkan bila tidak ada)</option>${Object.keys(KET).map(k => `<option value="${k}">${esc(KET[k])}</option>`).join('')}<option value="LAIN">Lainnya (isi sendiri)...</option></select>
+    <input type="text" class="ktx" data-kx maxlength="80" placeholder="Tulis keterangan..." aria-label="Keterangan lainnya ${nm}"></div>`;
 }
 function renderGrid() {
   const box = $('gridBox'); if (!S.siswa.length) { box.innerHTML = '<div class="msg warn">Tidak ada siswa terdaftar untuk sekolah ini di data master.</div>'; $('sum').innerHTML = ''; return; }
@@ -841,8 +844,7 @@ $('gridBox').addEventListener('input', e => {
 $('gridBox').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const row = b.closest('.gr'), n = row.dataset.n, v = S.v[n];
-  if (b.dataset.act === 'ket') { S.buka[n] = !S.buka[n]; refreshRow(row); return; }
-  if (S.terkunci || v.ket) return;
+  if (S.terkunci || (v.ket && v.ket !== KET_LAIN)) return;
   const f = b.dataset.g, cur = angka(v[f]), ef = angka(S.efektif);
   if (b.dataset.act === 'plus') { if (ef > 0 && hitungBaris(n).tidak >= ef) return; v[f] = String(Math.min(31, cur + 1)); }
   else v[f] = cur > 0 ? String(cur - 1) : '';
@@ -850,10 +852,18 @@ $('gridBox').addEventListener('click', e => {
   refreshRow(row); simpanDraft(); ringkas();
 });
 $('gridBox').addEventListener('change', e => {
-  const c = e.target; if (c.type !== 'checkbox' || !c.dataset.k) return;
+  const c = e.target; if (!c.hasAttribute('data-ks')) return;
   const row = c.closest('.gr'), n = row.dataset.n;
-  if (!S.terkunci) { S.v[n].ket = c.checked ? c.dataset.k : ''; simpanDraft(); ringkas(); }
+  if (!S.terkunci) {
+    S.v[n].ket = c.value; if (c.value !== KET_LAIN) S.v[n].catatan = '';
+    simpanDraft(); ringkas();
+  }
   refreshRow(row);
+  if (c.value === KET_LAIN) { const tx = row.querySelector('.ktx'); if (tx && !S.terkunci) tx.focus(); }
+});
+$('gridBox').addEventListener('input', e => {
+  const t = e.target; if (!t.hasAttribute('data-kx')) return;
+  const n = t.closest('.gr').dataset.n; S.v[n].catatan = t.value.slice(0, 80); simpanDraft();
 });
 $('inEfektif').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.efektif = e.target.value; simpanDraft(); renderGrid(); });
 $('inPengisi').addEventListener('input', e => store.set('sk_pengisi', e.target.value));
@@ -866,7 +876,7 @@ function ringkas() {
     + (salah ? `<span style="color:var(--bad)">Baris salah: <b>${salah}</b> (sakit+izin+alpha melebihi hari efektif)</span>` : '');
 }
 // papan ketik terbuka di HP: tombol bawah diganti satu tombol "Selesai mengetik" agar tidak menutupi isian
-const bisaKetik = el => el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'checkbox' && el.type !== 'file';
+const bisaKetik = el => el && /^(INPUT|TEXTAREA)$/.test(el.tagName) && el.type !== 'checkbox' && el.type !== 'file';
 document.addEventListener('focusin', e => { if (bisaKetik(e.target)) document.body.classList.add('kbd'); });
 document.addEventListener('focusout', () => setTimeout(() => { if (!bisaKetik(document.activeElement)) document.body.classList.remove('kbd'); }, 120));
 
@@ -887,7 +897,7 @@ async function simpan(tanpaKonfirmasi) {
   const p = periode(); $('btnSimpan').disabled = true; $('btnSimpan').textContent = 'Menyimpan...';
   try {
     const r = await api({ aksi: 'simpanAbsen', token: S.token, tahun: p.tahun, bulan: p.bulan, triwulan: p.triwulan, hariEfektif: angka(S.efektif), pengisi: $('inPengisi').value.trim(),
-      rows: S.siswa.map(s => ({ nisn: s.nisn, sakit: angka(S.v[s.nisn].sakit), izin: angka(S.v[s.nisn].izin), alpha: angka(S.v[s.nisn].alpha), ket: S.v[s.nisn].ket || '' })) });
+      rows: S.siswa.map(s => ({ nisn: s.nisn, sakit: angka(S.v[s.nisn].sakit), izin: angka(S.v[s.nisn].izin), alpha: angka(S.v[s.nisn].alpha), ket: S.v[s.nisn].ket || '', catatan: S.v[s.nisn].catatan || '' })) });
     if (!r || !r.ok) { if (r && r.error !== 'sesi') modal('Gagal menyimpan', (r && r.pesan) || 'Terjadi kesalahan.'); return false; }
     S.tersimpan = true; S.kotor = false; store.del(kunciDraft()); tampil($('draftMsg'), '');
     tampil($('upMsg'), r.tersimpan + ' siswa tersimpan. Sekarang ketuk Cetak / Simpan PDF.', 'ok');
@@ -917,7 +927,8 @@ function buildPdfDoc(rowsData, meta) {
   const rows = rowsData.map((r, i) => r.ket
     ? [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)), '-', '-', '-', '-', '-', pdfText(r.pendamping), pdfText(r.ket)]
     : [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
-       String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping), '']);
+       String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping),
+       pdfText([r.rendah ? 'TIDAK KOMITMEN' : '', r.catatan || ''].filter(Boolean).join(' - '))]);
   const head = [[
     { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 }, { content: 'NAMA SISWA', rowSpan: 2 }, { content: 'KELAS', rowSpan: 2 },
     { content: 'KEGIATAN\nEFEKTIF\n(HARI)', rowSpan: 2 }, { content: 'REKAP ABSENSI', colSpan: 3 }, { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }, { content: 'KETERANGAN', rowSpan: 2 }
@@ -943,6 +954,14 @@ function buildPdfDoc(rowsData, meta) {
       head, body, startY, theme: 'grid', rowPageBreak: 'avoid', margin: { top: MT, bottom: MB, left: ML, right: MR }, tableWidth: 'wrap',
       styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.6, textColor: 0, lineColor: 0, lineWidth: 0.2, valign: 'middle', overflow: 'linebreak' },
       headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5, cellPadding: 1 }, columnStyles,
+      didParseCell: d => {
+        if (d.section !== 'body') return;
+        const raw = d.row.raw, ket = Array.isArray(raw) ? String(raw[11] && raw[11].content !== undefined ? raw[11].content : raw[11] || '') : '';
+        if (ket.indexOf('TIDAK KOMITMEN') === 0) {   // kehadiran di bawah 85%: baris diarsir merah
+          d.cell.styles.fillColor = [254, 202, 202];
+          if (d.column.index === 9 || d.column.index === 11) { d.cell.styles.textColor = [153, 0, 0]; d.cell.styles.fontStyle = 'bold'; }
+        }
+      },
       didDrawCell: d => {
         if (record) {
           const st = d.cell.styles, fc = st.fillColor;
@@ -1020,7 +1039,7 @@ async function bukaPdf(pra) {
   }
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
-    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, ket: v.ket ? KET[v.ket].toUpperCase() : '' }; });
+    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, rendah: !!h.rendah, ket: (v.ket && v.ket !== KET_LAIN) ? KET[v.ket].toUpperCase() : '', catatan: v.ket === KET_LAIN ? String(v.catatan || '').trim().toUpperCase() : '' }; });
   const meta = { sekolah: S.sekolah.nama, kop: S.sekolah.nama + (S.sekolah.npsn ? ' || ' + S.sekolah.npsn : ''), bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
   pdfNama = namaPdf(meta.sekolah, meta.tw, meta.bulan, meta.tahun);
   try {
