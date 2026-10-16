@@ -444,22 +444,49 @@ input:disabled,select:disabled{opacity:.6}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{font-size:11px;font-weight:700;border-radius:8px;padding:5px 8px;border:1px solid var(--line);color:var(--mut)}
 .chip.s1{background:var(--infobg);color:var(--pri2);border-color:transparent}.chip.s2{background:var(--okbg);color:var(--ok);border-color:transparent}.chip.cur{outline:2px solid var(--pri2)}
-.grid{display:grid;grid-template-columns:30px minmax(0,1fr) 58px 58px 58px 62px;gap:6px;align-items:center}
-.gh{font-size:11px;font-weight:800;color:var(--mut);padding:6px 0;position:sticky;top:calc(56px + env(safe-area-inset-top));background:var(--card);z-index:5;border-bottom:1px solid var(--line)}
-.gr{padding:8px 0;border-bottom:1px solid var(--line)}
-.gr.err{background:var(--badbg)}
+.grid{display:grid;column-gap:6px;row-gap:0;align-items:center}
+.gh,.gr{grid-template-columns:30px minmax(140px,1fr) calc(var(--wf) * 3 + 12px) 76px 132px}
+:root{--wf:106px}
+.gh{font-size:11px;font-weight:800;color:var(--mut);padding:6px 8px;position:sticky;top:calc(56px + env(safe-area-inset-top));background:var(--card);z-index:5;border-bottom:1px solid var(--line);margin-bottom:6px}
+.gh .flds{display:grid;grid-template-columns:repeat(3,var(--wf));gap:6px;text-align:center}
+.gr{padding:8px;margin:0 0 6px;border:1px solid var(--line);border-radius:12px;grid-template-areas:"no nm fl pc kt" "kp kp kp kp kp"}
+.gr .c-no{grid-area:no;font-size:13px;color:var(--mut);font-weight:700}.gr .c-nm{grid-area:nm;min-width:0}
 .gr .nm{font-weight:600;font-size:14px;word-break:break-word}.gr .mt{font-size:11px;color:var(--mut)}
-.gr input{padding:9px 4px;text-align:center;width:58px}
-.gr .pc{text-align:center;font-size:12px;font-weight:800}.gr .pc small{display:block;font-weight:500;color:var(--mut);font-size:10px}
+.flds{grid-area:fl;display:grid;grid-template-columns:repeat(3,var(--wf));gap:6px}
+.fl{min-width:0}.fl .lb{display:none;font-size:10px;font-weight:800;color:var(--mut);text-align:center;margin:0 0 3px;letter-spacing:.04em;text-transform:uppercase}
+.st{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;height:44px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--inp)}
+.st input{border:0;border-radius:0;background:transparent;text-align:center;padding:0;width:100%;min-width:0;height:100%;font-size:16px;-moz-appearance:textfield}
+.st input:focus{outline:2px solid var(--pri2);outline-offset:-2px}
+.sb{border:0;background:var(--infobg);color:var(--pri2);font-size:22px;font-weight:800;line-height:1;cursor:pointer;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:rgba(29,79,154,.2)}
+.sb:active{filter:brightness(.9)}.sb:disabled{opacity:.35;cursor:not-allowed}
+.gr .pc{grid-area:pc;text-align:center;font-size:13px;font-weight:800}.gr .pc small{display:block;font-weight:500;color:var(--mut);font-size:10px;line-height:1.25}
+.gr .pc small.lw{color:var(--bad);font-weight:800}
+.ktb{grid-area:kt;width:100%;min-height:44px;border:1px solid var(--line);background:transparent;color:var(--pri2);border-radius:11px;font-size:12px;font-weight:700;padding:6px 8px;cursor:pointer;line-height:1.2;touch-action:manipulation}
+.ktp{grid-area:kp;display:none;margin-top:8px;gap:6px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.ktp.open{display:grid}
+.kc{display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;background:var(--card);touch-action:manipulation;margin:0;color:var(--ink)}
+.kc input{width:24px;height:24px;flex:0 0 24px;margin:0;padding:0;accent-color:var(--pri2)}
+.kc.on{border-color:var(--pri2);background:var(--infobg)}
+.gr.err{border-color:var(--bad);background:var(--badbg)}
+.gr.low{border:2px solid var(--bad);padding:7px;background:var(--badbg);box-shadow:inset 0 3px 14px rgba(220,38,38,.30),inset 0 0 0 1px rgba(220,38,38,.25)}
+.gr.low .st,.gr.err .st{border-color:var(--bad);box-shadow:inset 0 2px 7px rgba(220,38,38,.38)}
+.gr.low .pc,.gr.err .pc{color:var(--bad)}
+.gr.ketx{background:var(--infobg)}.gr.ketx .flds{opacity:.4}
+.gr.ketx .ktb{background:var(--pri);color:#fff;border-color:transparent}
+.hint{font-size:12px;color:var(--mut);margin:0 0 8px}
 .kelas{font-size:12px;font-weight:800;color:var(--pri2);padding:10px 0 4px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .bar .btn{flex:1;min-width:130px;max-width:300px}
-@media (max-width:520px){
+@media (max-width:860px){
 .gh{display:none}
-.gr{grid-template-columns:26px 1fr 1fr 1fr 78px;grid-template-areas:"no nm nm nm pc" ". s i a ."}
-.gr .c-no{grid-area:no}.gr .c-nm{grid-area:nm}.gr .pc{grid-area:pc}
-.gr input{width:100%;grid-row:2}.gr input[data-f=sakit]{grid-area:s}.gr input[data-f=izin]{grid-area:i}.gr input[data-f=alpha]{grid-area:a}
+.gr{grid-template-columns:28px minmax(0,1fr) 80px;grid-template-areas:"no nm pc" "fl fl fl" "kt kt kt" "kp kp kp";row-gap:8px}
+.flds{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fl .lb{display:block}
+.ktp{grid-template-columns:1fr;margin-top:0}
 }
+.bar .done{display:none;background:var(--ok)}
+@media (pointer:coarse){body.kbd .bar .btn{display:none}body.kbd .bar .done{display:block}}
+input,select{scroll-margin:130px 0 150px}
 @media (max-width:520px){.bar{flex-wrap:nowrap;gap:6px}.bar .btn{min-width:0;padding:11px 6px;font-size:13px;line-height:1.2}}
 .sum{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin:8px 0}.sum b{color:var(--ink)}
 #vLogin{max-width:420px;margin:30px auto 0}
@@ -521,6 +548,7 @@ input:disabled,select:disabled{opacity:.6}
 
     <div class="card">
       <h2>2. Isi absensi</h2>
+      <p class="hint">Ketuk <b>+</b> atau <b>&minus;</b> (atau ketik angkanya). Baris bertepi <b style="color:var(--bad)">merah</b> = kehadiran di bawah 85%. Ketuk <b>Keterangan</b> bila siswa lulus, pindah, atau tidak bersekolah di sini.</p>
       <div class="row" style="margin-bottom:12px">
         <div><label for="inEfektif">Kegiatan efektif (hari)</label><input id="inEfektif" inputmode="numeric" placeholder="mis. 20"></div>
         <div><label for="inPengisi">Nama pengisi</label><input id="inPengisi" autocomplete="name" placeholder="Nama guru / operator"></div>
@@ -550,6 +578,7 @@ input:disabled,select:disabled{opacity:.6}
   <button class="btn ok" id="btnSimpan" onclick="simpan()">Simpan Absen</button>
   <button class="btn" id="btnCetak" onclick="cetak()">Cetak / Simpan PDF</button>
   <button class="btn ghost" id="btnUnggah" onclick="unggah()">Unggah Bukti</button>
+  <button class="btn done" id="btnSelesai" type="button" onclick="document.activeElement && document.activeElement.blur()">Selesai mengetik</button>
 </div>
 
 <!-- PRATINJAU PDF -->
@@ -578,7 +607,7 @@ input:disabled,select:disabled{opacity:.6}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 3;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 4;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -629,7 +658,7 @@ async function api(req, opt) {
 }
 
 // =============================== STATE ===============================
-const S = { token: '', sekolah: null, siswa: [], v: {}, efektif: '', pengisi: '', bukti: null, tersimpan: false, kotor: false, tw: '', twManual: false, statusBulan: [], terkunci: false, muatId: 0 };
+const S = { token: '', sekolah: null, siswa: [], v: {}, buka: {}, efektif: '', pengisi: '', bukti: null, tersimpan: false, kotor: false, tw: '', twManual: false, statusBulan: [], terkunci: false, muatId: 0 };
 
 // =============================== MASUK / KELUAR ===============================
 function gantiTampilan(masukApp) {
@@ -700,7 +729,7 @@ async function muatPeriode() {
     if (d.sekolah && d.sekolah.npsn) S.sekolah.npsn = d.sekolah.npsn;
     S.siswa = d.siswa; S.bukti = d.bukti || null; S.statusBulan = st && st.ok ? st.bulan : [];
     S.v = {}; const ab = d.absen || { efektif: 0, baris: {} };
-    S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha) } : { sakit: '', izin: '', alpha: '' }; });
+    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? (b.ket ? { sakit: '', izin: '', alpha: '', ket: b.ket } : { sakit: String(b.sakit), izin: String(b.izin), alpha: String(b.alpha), ket: '' }) : { sakit: '', izin: '', alpha: '', ket: '' }; });
     S.efektif = ab.efektif ? String(ab.efektif) : '';
     S.tersimpan = Object.keys(ab.baris).length > 0; S.kotor = false;
     if (ab.pengisi && !$('inPengisi').value) $('inPengisi').value = ab.pengisi;
@@ -721,7 +750,7 @@ function pulihkanDraft() {
   try {
     const d = JSON.parse(raw); let ada = false;
     if (d.efektif !== undefined && d.efektif !== S.efektif) { S.efektif = d.efektif; ada = true; }
-    Object.keys(d.v || {}).forEach(n => { if (S.v[n]) ['sakit', 'izin', 'alpha'].forEach(f => { if (d.v[n][f] !== undefined && d.v[n][f] !== S.v[n][f]) { S.v[n][f] = d.v[n][f]; ada = true; } }); });
+    Object.keys(d.v || {}).forEach(n => { if (S.v[n]) ['sakit', 'izin', 'alpha', 'ket'].forEach(f => { if (d.v[n][f] !== undefined && d.v[n][f] !== S.v[n][f]) { S.v[n][f] = d.v[n][f]; ada = true; } }); });
     if (ada) { S.kotor = true; tampil($('draftMsg'), 'Isian yang belum disimpan dipulihkan dari perangkat ini. Ketuk Simpan Absen untuk mengirimnya.', 'info'); }
     else store.del(kunciDraft());
   } catch (e) { store.del(kunciDraft()); }
@@ -755,45 +784,91 @@ function isiPilihanKelas() {
   if ([...$('selKelas').options].some(o => o.value === cur)) $('selKelas').value = cur;
 }
 $('selKelas').addEventListener('change', renderGrid);
-window.matchMedia('(max-width:520px)').addEventListener('change', () => { if (S.siswa.length) renderGrid(); });
 const angka = v => { const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; };
+const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };
+const BATAS_HADIR = 85;
 function hitungBaris(n) {
-  const e = angka(S.efektif), v = S.v[n] || {}, tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha);
-  return { tidak, salah: e > 0 && tidak > e, hadir: Math.max(0, e - tidak), persen: e > 0 ? Math.round(Math.max(0, e - tidak) * 1000 / e) / 10 : null };
+  const e = angka(S.efektif), v = S.v[n] || {};
+  if (v.ket) return { ket: v.ket, tidak: 0, salah: false, hadir: null, persen: null, rendah: false };
+  const tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
+  const persen = e > 0 ? Math.round(hadir * 1000 / e) / 10 : null, salah = e > 0 && tidak > e;
+  return { ket: '', tidak, salah, hadir, persen, rendah: !salah && persen !== null && persen < BATAS_HADIR };
+}
+function pcHtml(h) {
+  if (h.ket) return '-<small>tidak dihitung</small>';
+  if (h.persen === null) return '-';
+  return String(h.persen).replace('.', ',') + '%<small>hadir ' + h.hadir + '</small>' + (h.rendah ? '<small class="lw">di bawah ' + BATAS_HADIR + '%</small>' : '');
+}
+function ketLabel(k, buka) { return (k ? '&#10003; ' + esc(KET[k]) : 'Keterangan') + (buka ? ' &#9652;' : ' &#9662;'); }
+function refreshRow(row) {
+  const n = row.dataset.n, v = S.v[n], h = hitungBaris(n);
+  row.classList.toggle('err', h.salah); row.classList.toggle('low', h.rendah); row.classList.toggle('ketx', !!h.ket);
+  row.querySelector('[data-pc]').innerHTML = pcHtml(h);
+  const tb = row.querySelector('.ktb'); tb.innerHTML = ketLabel(v.ket, S.buka[n]); tb.setAttribute('aria-expanded', S.buka[n] ? 'true' : 'false');
+  row.querySelector('.ktp').classList.toggle('open', !!S.buka[n]);
+  row.querySelectorAll('.kc').forEach(l => { const on = l.dataset.k === v.ket; l.classList.toggle('on', on); l.querySelector('input').checked = on; l.querySelector('input').disabled = S.terkunci; });
+  row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci || !!h.ket; });
+}
+function barisHtml(s, no) {
+  const v = S.v[s.nisn], nm = esc(s.nama);
+  const fld = (f, lb) => `<div class="fl"><span class="lb">${lb}</span><div class="st"><button type="button" class="sb" data-act="min" data-g="${f}" aria-label="Kurangi ${lb.toLowerCase()} ${nm}">&minus;</button><input inputmode="numeric" pattern="[0-9]*" maxlength="2" data-f="${f}" value="${esc(v[f])}" placeholder="0" aria-label="${lb} ${nm}"><button type="button" class="sb" data-act="plus" data-g="${f}" aria-label="Tambah ${lb.toLowerCase()} ${nm}">+</button></div></div>`;
+  return `<div class="grid gr" data-n="${esc(s.nisn)}"><div class="c-no">${no}</div>
+    <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(s.nisn)}</div></div>
+    <div class="flds">${fld('sakit', 'Sakit')}${fld('izin', 'Izin')}${fld('alpha', 'Alpha')}</div>
+    <div class="pc" data-pc></div>
+    <button type="button" class="ktb" data-act="ket" aria-label="Keterangan ${nm}"></button>
+    <div class="ktp">${Object.keys(KET).map(k => `<label class="kc" data-k="${k}"><input type="checkbox" data-k="${k}"><span>${esc(KET[k])}</span></label>`).join('')}</div></div>`;
 }
 function renderGrid() {
   const box = $('gridBox'); if (!S.siswa.length) { box.innerHTML = '<div class="msg warn">Tidak ada siswa terdaftar untuk sekolah ini di data master.</div>'; $('sum').innerHTML = ''; return; }
-  const filter = $('selKelas').value, dis = S.terkunci ? 'disabled' : '';
-  const PH = window.matchMedia('(max-width:520px)').matches ? { sakit: 'Sakit', izin: 'Izin', alpha: 'Alpha' } : { sakit: '0', izin: '0', alpha: '0' };
-  let html = '<div class="grid gh"><div>NO</div><div>NAMA SISWA</div><div style="text-align:center">SAKIT</div><div style="text-align:center">IZIN</div><div style="text-align:center">ALPHA</div><div style="text-align:center">%</div></div>';
+  const filter = $('selKelas').value;
+  let html = '<div class="grid gh"><div>NO</div><div>NAMA SISWA</div><div class="flds"><span>SAKIT</span><span>IZIN</span><span>ALPHA</span></div><div style="text-align:center">%</div><div style="text-align:center">KETERANGAN</div></div>';
   let kelasNow = null, no = 0;
   S.siswa.forEach(s => {
     no++; const k = kelasAngka(s.kelas);
     if (filter !== '*' && k !== filter) return;
     if (k !== kelasNow) { kelasNow = k; html += `<div class="kelas">KELAS ${esc(k)}</div>`; }
-    const h = hitungBaris(s.nisn), v = S.v[s.nisn];
-    html += `<div class="grid gr ${h.salah ? 'err' : ''}" data-n="${esc(s.nisn)}"><div class="c-no">${no}</div>
-      <div class="c-nm"><div class="nm">${esc(s.nama)}</div><div class="mt">NISN ${esc(s.nisn)}</div></div>
-      ${['sakit', 'izin', 'alpha'].map(f => `<input inputmode="numeric" pattern="[0-9]*" maxlength="2" ${dis} data-f="${f}" value="${esc(v[f])}" placeholder="${PH[f]}" aria-label="${f} ${esc(s.nama)}">`).join('')}
-      <div class="pc" data-pc>${pcHtml(h)}</div></div>`;
+    html += barisHtml(s, no);
   });
-  box.innerHTML = html; ringkas();
+  box.innerHTML = html; box.querySelectorAll('.gr').forEach(refreshRow); ringkas();
 }
-function pcHtml(h) { return h.persen === null ? '-' : String(h.persen).replace('.', ',') + '%<small>hadir ' + h.hadir + '</small>'; }
 $('gridBox').addEventListener('input', e => {
-  const inp = e.target; if (!inp.dataset.f) return;
+  const inp = e.target; if (inp.tagName !== 'INPUT' || !inp.dataset.f) return;
   inp.value = inp.value.replace(/\D/g, '').slice(0, 2);
-  const row = inp.closest('.gr'), n = row.dataset.n; S.v[n][inp.dataset.f] = inp.value;
-  const h = hitungBaris(n); row.classList.toggle('err', h.salah); row.querySelector('[data-pc]').innerHTML = pcHtml(h);
-  simpanDraft(); ringkas();
+  const row = inp.closest('.gr'); S.v[row.dataset.n][inp.dataset.f] = inp.value;
+  refreshRow(row); simpanDraft(); ringkas();
+});
+$('gridBox').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  const row = b.closest('.gr'), n = row.dataset.n, v = S.v[n];
+  if (b.dataset.act === 'ket') { S.buka[n] = !S.buka[n]; refreshRow(row); return; }
+  if (S.terkunci || v.ket) return;
+  const f = b.dataset.g, cur = angka(v[f]), ef = angka(S.efektif);
+  if (b.dataset.act === 'plus') { if (ef > 0 && hitungBaris(n).tidak >= ef) return; v[f] = String(Math.min(31, cur + 1)); }
+  else v[f] = cur > 0 ? String(cur - 1) : '';
+  row.querySelector('input[data-f="' + f + '"]').value = v[f];
+  refreshRow(row); simpanDraft(); ringkas();
+});
+$('gridBox').addEventListener('change', e => {
+  const c = e.target; if (c.type !== 'checkbox' || !c.dataset.k) return;
+  const row = c.closest('.gr'), n = row.dataset.n;
+  if (!S.terkunci) { S.v[n].ket = c.checked ? c.dataset.k : ''; simpanDraft(); ringkas(); }
+  refreshRow(row);
 });
 $('inEfektif').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.efektif = e.target.value; simpanDraft(); renderGrid(); });
 $('inPengisi').addEventListener('input', e => store.set('sk_pengisi', e.target.value));
 function ringkas() {
-  const e = angka(S.efektif); let n = 0, salah = 0, total = 0, isi = 0;
-  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.salah) salah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
-  $('sum').innerHTML = `<span>Siswa: <b>${n}</b></span><span>Hari efektif: <b>${e || '-'}</b></span><span>Rata-rata kehadiran: <b>${isi ? (Math.round(total / isi * 10) / 10).toString().replace('.', ',') + '%' : '-'}</b></span>` + (salah ? `<span style="color:var(--bad)">Baris salah: <b>${salah}</b> (sakit+izin+alpha melebihi hari efektif)</span>` : '');
+  const e = angka(S.efektif); let n = 0, salah = 0, total = 0, isi = 0, rendah = 0, ket = 0;
+  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.ket) { ket++; return; } if (h.salah) salah++; if (h.rendah) rendah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
+  $('sum').innerHTML = `<span>Siswa: <b>${n}</b></span><span>Hari efektif: <b>${e || '-'}</b></span><span>Rata-rata kehadiran: <b>${isi ? (Math.round(total / isi * 10) / 10).toString().replace('.', ',') + '%' : '-'}</b></span>`
+    + (ket ? `<span>Keterangan: <b>${ket}</b> siswa</span>` : '')
+    + (rendah ? `<span style="color:var(--bad)">Di bawah ${BATAS_HADIR}%: <b>${rendah}</b> siswa</span>` : '')
+    + (salah ? `<span style="color:var(--bad)">Baris salah: <b>${salah}</b> (sakit+izin+alpha melebihi hari efektif)</span>` : '');
 }
+// papan ketik terbuka di HP: tombol bawah diganti satu tombol "Selesai mengetik" agar tidak menutupi isian
+const bisaKetik = el => el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'checkbox' && el.type !== 'file';
+document.addEventListener('focusin', e => { if (bisaKetik(e.target)) document.body.classList.add('kbd'); });
+document.addEventListener('focusout', () => setTimeout(() => { if (!bisaKetik(document.activeElement)) document.body.classList.remove('kbd'); }, 120));
 
 // =============================== SIMPAN ===============================
 function periksaForm() {
@@ -807,12 +882,12 @@ function periksaForm() {
 async function simpan(tanpaKonfirmasi) {
   if (S.terkunci) { modal('Dikunci', 'Bukti bulan ini sudah diunggah, absen tidak bisa diubah.'); return false; }
   const err = periksaForm(); if (err) { modal('Belum lengkap', err); return false; }
-  const semuaNol = S.siswa.every(s => hitungBaris(s.nisn).tidak === 0);
+  const semuaNol = S.siswa.every(s => { const h = hitungBaris(s.nisn); return !!h.ket || h.tidak === 0; });
   if (semuaNol && !tanpaKonfirmasi && !(await konfirmasi('Semua siswa hadir penuh?', 'Tidak ada satu pun sakit, izin, atau alpha. Semua siswa akan tercatat hadir 100%. Apakah sudah benar?', 'Ya, benar'))) return false;
   const p = periode(); $('btnSimpan').disabled = true; $('btnSimpan').textContent = 'Menyimpan...';
   try {
     const r = await api({ aksi: 'simpanAbsen', token: S.token, tahun: p.tahun, bulan: p.bulan, triwulan: p.triwulan, hariEfektif: angka(S.efektif), pengisi: $('inPengisi').value.trim(),
-      rows: S.siswa.map(s => ({ nisn: s.nisn, sakit: angka(S.v[s.nisn].sakit), izin: angka(S.v[s.nisn].izin), alpha: angka(S.v[s.nisn].alpha) })) });
+      rows: S.siswa.map(s => ({ nisn: s.nisn, sakit: angka(S.v[s.nisn].sakit), izin: angka(S.v[s.nisn].izin), alpha: angka(S.v[s.nisn].alpha), ket: S.v[s.nisn].ket || '' })) });
     if (!r || !r.ok) { if (r && r.error !== 'sesi') modal('Gagal menyimpan', (r && r.pesan) || 'Terjadi kesalahan.'); return false; }
     S.tersimpan = true; S.kotor = false; store.del(kunciDraft()); tampil($('draftMsg'), '');
     tampil($('upMsg'), r.tersimpan + ' siswa tersimpan. Sekarang ketuk Cetak / Simpan PDF.', 'ok');
@@ -839,14 +914,17 @@ function buildPdfDoc(rowsData, meta) {
   const { jsPDF } = window.jspdf;
   const PW = 297, PH = 210, ML = 12, MR = 12, MT = 10, MB = 10, SIG_H = 50, GAP = 4;
   const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const rows = rowsData.map((r, i) => [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
-    String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping)]);
+  const rows = rowsData.map((r, i) => r.ket
+    ? [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)), '-', '-', '-', '-', '-', pdfText(r.pendamping), pdfText(r.ket)]
+    : [String(i + 1), pdfText(r.pengurus), pdfText(r.nisn), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
+       String(r.efektif), String(r.sakit), String(r.izin), String(r.alpha), String(r.persen).replace('.', ',') + '%', pdfText(r.pendamping), '']);
   const head = [[
     { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 }, { content: 'NAMA SISWA', rowSpan: 2 }, { content: 'KELAS', rowSpan: 2 },
-    { content: 'KEGIATAN\nEFEKTIF\n(HARI)', rowSpan: 2 }, { content: 'REKAP ABSENSI', colSpan: 3 }, { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }
+    { content: 'KEGIATAN\nEFEKTIF\n(HARI)', rowSpan: 2 }, { content: 'REKAP ABSENSI', colSpan: 3 }, { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }, { content: 'KETERANGAN', rowSpan: 2 }
   ], ['SAKIT', 'IJIN', 'ALPHA']];
-  const columnStyles = { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 45 }, 2: { cellWidth: 27, halign: 'center' }, 3: { cellWidth: 50 }, 4: { cellWidth: 14, halign: 'center' },
-    5: { cellWidth: 20, halign: 'center' }, 6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' }, 8: { cellWidth: 12, halign: 'center' }, 9: { cellWidth: 20, halign: 'center' }, 10: { cellWidth: 51 } };
+  // lebar total 273 mm = A4 landscape (297) dikurangi margin kiri-kanan 12 mm
+  const columnStyles = { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 34 }, 2: { cellWidth: 24, halign: 'center' }, 3: { cellWidth: 45 }, 4: { cellWidth: 12, halign: 'center' },
+    5: { cellWidth: 17, halign: 'center' }, 6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' }, 8: { cellWidth: 12, halign: 'center' }, 9: { cellWidth: 20, halign: 'center' }, 10: { cellWidth: 33 }, 11: { cellWidth: 44 } };
   const imgOf = id => { const im = $(id); return { src: im.src, w: im.naturalWidth, h: im.naturalHeight, fmt: /image\/png/.test(im.src) ? 'PNG' : 'JPEG' }; };
   function drawKop(doc) {
     const LH = 19, y0 = MT, k = imgOf('logoKemensos'), p = imgOf('logoPKH');
@@ -864,7 +942,7 @@ function buildPdfDoc(rowsData, meta) {
     doc.autoTable({
       head, body, startY, theme: 'grid', rowPageBreak: 'avoid', margin: { top: MT, bottom: MB, left: ML, right: MR }, tableWidth: 'wrap',
       styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.6, textColor: 0, lineColor: 0, lineWidth: 0.2, valign: 'middle', overflow: 'linebreak' },
-      headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5 }, columnStyles,
+      headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5, cellPadding: 1 }, columnStyles,
       didDrawCell: d => {
         if (record) {
           const st = d.cell.styles, fc = st.fillColor;
@@ -942,7 +1020,7 @@ async function bukaPdf(pra) {
   }
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
-    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen }; });
+    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, ket: v.ket ? KET[v.ket].toUpperCase() : '' }; });
   const meta = { sekolah: S.sekolah.nama, kop: S.sekolah.nama + (S.sekolah.npsn ? ' || ' + S.sekolah.npsn : ''), bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
   pdfNama = namaPdf(meta.sekolah, meta.tw, meta.bulan, meta.tahun);
   try {

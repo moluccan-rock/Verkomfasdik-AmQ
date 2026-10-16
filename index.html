@@ -735,7 +735,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             <table class="print-data-table">
                 <thead>
-                    <tr class="pg-gap"><td colspan="11" style="height: 8mm;"></td></tr>
+                    <tr class="pg-gap"><td colspan="12" style="height: 8mm;"></td></tr>
                     <tr>
                         <th rowspan="2" style="width: 30px;">NO</th>
                         <th rowspan="2">NAMA PENGURUS</th>
@@ -746,6 +746,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <th colspan="3">REKAP ABSENSI</th>
                         <th rowspan="2" style="width: 65px;">%<br>KEHADIRAN</th>
                         <th rowspan="2">NAMA PENDAMPING</th>
+                        <th rowspan="2" style="width: 150px;">KETERANGAN</th>
                     </tr>
                     <tr>
                         <th style="width: 40px;">SAKIT</th>
@@ -754,7 +755,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </tr>
                 </thead>
                 <tbody id="printTableBody"></tbody>
-                <tfoot><tr class="pg-gap"><td colspan="11" style="height: 10mm;"></td></tr></tfoot>
+                <tfoot><tr class="pg-gap"><td colspan="12" style="height: 10mm;"></td></tr></tfoot>
             </table>
         </div>
     </div>
@@ -800,7 +801,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 10;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 11;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1575,8 +1576,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <td style="text-align:center;">${esc(kelasAngka(r.tingkatPendidikan))}</td>
                     <td></td><td></td><td></td><td></td><td></td>
                     <td>${esc(r.pendamping)}</td>
+                    <td></td>
                 </tr>`).join('');
-            const sigHtml = `<tr class="sig-row"><td colspan="11" style="border:0;padding:0;">
+            const sigHtml = `<tr class="sig-row"><td colspan="12" style="border:0;padding:0;">
                 <div style="float:right;width:230px;margin:14px 0 0 0;text-align:center;font-size:11px;break-inside:avoid;page-break-inside:avoid;">
                     <p style="margin:0;text-align:left;padding-left:20px;">Ambon, &nbsp;&nbsp;&nbsp;&nbsp; ${esc(selectedBulan + ' ' + currentYear)}</p>
                     <p style="margin:4px 0 0 0;">Mengetahui,<br>Kepala Sekolah</p>
@@ -1628,18 +1630,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             const rows = printData.map((r, i) => [
                 String(i + 1), pdfText(r.namaPengurus), pdfText(r.nisn), pdfText(r.namaSiswa),
-                pdfText(kelasAngka(r.tingkatPendidikan)), '', '', '', '', '', pdfText(r.pendamping)
+                pdfText(kelasAngka(r.tingkatPendidikan)), '', '', '', '', '', pdfText(r.pendamping), ''
             ]);
             const head = [[
                 { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 },
                 { content: 'NAMA SISWA', rowSpan: 2 }, { content: 'KELAS', rowSpan: 2 },
                 { content: 'KEGIATAN\nEFEKTIF\n(HARI)', rowSpan: 2 }, { content: 'REKAP ABSENSI', colSpan: 3 },
-                { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }
+                { content: '%\nKEHADIRAN', rowSpan: 2 }, { content: 'NAMA PENDAMPING', rowSpan: 2 }, { content: 'KETERANGAN', rowSpan: 2 }
             ], ['SAKIT', 'IJIN', 'ALPHA']];
+            // lebar total 273 mm = A4 landscape (297) dikurangi margin kiri-kanan 12 mm (sama dengan lembar dari halaman sekolah)
             const columnStyles = {
-                0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 45 }, 2: { cellWidth: 27, halign: 'center' },
-                3: { cellWidth: 50 }, 4: { cellWidth: 14, halign: 'center' }, 5: { cellWidth: 20 },
-                6: { cellWidth: 12 }, 7: { cellWidth: 12 }, 8: { cellWidth: 12 }, 9: { cellWidth: 20 }, 10: { cellWidth: 51 }
+                0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 34 }, 2: { cellWidth: 24, halign: 'center' },
+                3: { cellWidth: 45 }, 4: { cellWidth: 12, halign: 'center' }, 5: { cellWidth: 17, halign: 'center' },
+                6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' }, 8: { cellWidth: 12, halign: 'center' }, 9: { cellWidth: 20, halign: 'center' },
+                10: { cellWidth: 33 }, 11: { cellWidth: 44 }
             };
 
             const imgOf = id => { const im = document.getElementById(id); return { src: im.src, w: im.naturalWidth, h: im.naturalHeight, fmt: /image\/png/.test(im.src) ? 'PNG' : 'JPEG' }; };
@@ -1666,7 +1670,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     head, body, startY, theme: 'grid', rowPageBreak: 'avoid',
                     margin: { top: MT, bottom: MB, left: ML, right: MR }, tableWidth: 'wrap',
                     styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.6, textColor: 0, lineColor: 0, lineWidth: 0.2, valign: 'middle', overflow: 'linebreak' },
-                    headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5 },
+                    headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5, cellPadding: 1 },
                     columnStyles,
                     didDrawCell: d => {
                         if (record) {
