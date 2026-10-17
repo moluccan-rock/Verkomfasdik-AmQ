@@ -567,7 +567,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         .chart-box > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
         #viewDatabase { height: max(26rem, calc(var(--app-h) - 14rem)); }
         @media (max-width: 767.98px) { #viewDatabase { height: max(26rem, calc(var(--app-h) - 3rem)); } }
-        </style>
+        .admform{display:grid;grid-template-columns:1fr;gap:8px}@media(min-width:720px){.admform{grid-template-columns:1.4fr 1fr auto}}.admform input{width:100%;min-width:0}
+</style>
 </head>
 <body class="w-full flex flex-col md:flex-row relative">
 <div id="gateTim" role="dialog" aria-modal="true" aria-labelledby="gateJudul">
@@ -806,6 +807,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div id="admPesan"></div>
             </div>
             <div class="mt-4"><h4 class="text-xs font-bold uppercase tracking-wide mb-2 mut">Kode tim</h4><div id="admDaftar"></div></div>
+            <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl mt-4" id="admEditorKartu">
+                <h4 class="text-xs font-bold uppercase tracking-wide mb-1 mut"><i class="fa-solid fa-table-list mr-1"></i> Akses edit data master siswa</h4>
+                <p class="mut text-xs mb-3">Hanya email yang Anda daftarkan di sini yang bisa membuka dan mengedit Google Sheet master (tambah/ubah data siswa). Email harus akun Google. Pendaftar akan menerima email undangan dari Google.</p>
+                <div id="admMasterStatus" class="mb-3"></div>
+                <form id="admEditorForm" class="admform" autocomplete="off">
+                    <input id="admEditorEmail" type="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="email@gmail.com" required>
+                    <input id="admEditorCatatan" type="text" maxlength="40" placeholder="Nama / catatan (opsional)">
+                    <button type="submit" class="sbtn" id="admEditorTambah"><i class="fa-solid fa-user-plus"></i> Daftarkan</button>
+                </form>
+                <div id="admEditorDaftar" class="mt-3"></div>
+            </div>
             <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl mt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wide mb-2 mut">Kode &amp; PIN sekolah</h4>
                 <input id="admCari" type="search" placeholder="Cari kode atau nama sekolah..." style="width:100%;margin-bottom:6px">
@@ -938,7 +950,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 16;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 17;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1195,7 +1207,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (!TIM.admin || !TIM.token) return;
             const b = stEl('admMuat'); b.disabled = true; admErr('');
             try {
-                const [r, rs] = await Promise.all([admApi({ aksi: 'adminDaftar' }), admApi({ aksi: 'adminSekolah' })]);
+                const [r, rs, re] = await Promise.all([admApi({ aksi: 'adminDaftar' }), admApi({ aksi: 'adminSekolah' }), admApi({ aksi: 'adminEditorDaftar' })]);
                 if (!r.ok) { admErr(r.pesan || 'Gagal memuat.'); return; }
                 stEl('admDaftar').innerHTML = r.kode.map(k => {
                     const dev = k.perangkat.map(d => `<div class="dev"><div><b>${stEsc(d.nama || '(tanpa nama)')}</b><div class="mut" style="font-size:11.5px">daftar ${stEsc(d.daftar)} · terakhir masuk ${stEsc(d.terakhir)}</div></div><button type="button" data-lepas="${stEsc(k.id)}" data-pid="${stEsc(d.pid)}" data-nama="${stEsc(d.nama)}">Lepas</button></div>`).join('') || '<div class="dev mut">Belum ada perangkat terdaftar.</div>';
@@ -1205,7 +1217,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <div class="admrow" style="border-top:0;padding-bottom:4px"><div class="btns"><button type="button" class="sbtn sm" data-adm="lihat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}">Lihat kode</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}" data-admin="${k.admin ? '1' : ''}">Buat kode baru</button>${aks}</div></div>${dev}</div></div>`;
                 }).join('');
                 if (rs && rs.ok) { ADM.sekolah = rs.sekolah; admGambarSekolah(); }
+                admGambarEditor(re);
             } catch (e) { admErr(e.message); } finally { b.disabled = false; }
+        }
+        function admGambarEditor(r) {
+            const st = stEl('admMasterStatus'), ls = stEl('admEditorDaftar');
+            if (!r || !r.ok) { st.innerHTML = '<div class="err">' + stEsc((r && r.pesan) || 'Daftar editor tidak bisa dimuat.') + '</div>'; ls.innerHTML = ''; return; }
+            st.innerHTML = r.publik
+                ? '<div class="err" style="background:rgba(245,158,11,.15);color:inherit;border-color:rgba(245,158,11,.5)"><b>Sheet master masih bisa dibuka publik</b> (siapa pun yang punya tautan). Setelah dashboard berjalan lancar di HP tim, tutup agar hanya email terdaftar yang bisa membuka.<div style="margin-top:8px"><button type="button" class="sbtn sm red" id="admKunciMaster"><i class="fa-solid fa-lock"></i> Tutup akses publik (jadikan privat)</button></div></div>'
+                : '<span class="badge g"><i class="fa-solid fa-lock"></i> Sheet master privat: hanya pemilik &amp; email terdaftar</span>';
+            ls.innerHTML = (r.pemilik ? `<div class="admrow"><div style="flex:1 1 200px;min-width:0"><div class="nm" style="font-weight:700;font-size:13.5px;overflow-wrap:anywhere">${stEsc(r.pemilik)}</div><div class="mut" style="font-size:12px">Pemilik sheet (akses penuh)</div></div></div>` : '') +
+                (r.editor.length ? r.editor.map(x => `<div class="admrow"><div style="flex:1 1 200px;min-width:0"><div class="nm" style="font-weight:700;font-size:13.5px;overflow-wrap:anywhere">${stEsc(x.email)}</div><div class="mut" style="font-size:12px">${x.catatan ? stEsc(x.catatan) + ' · ' : ''}${x.terdaftar ? 'didaftarkan ' + stEsc(x.daftar) + (x.oleh ? ' oleh ' + stEsc(x.oleh) : '') : '<b style="color:#d97706">diberi akses langsung di Google Sheet (tidak lewat dashboard)</b>'}${x.belumAda ? ' · <b style="color:#d97706">belum aktif di Google</b>' : ''}</div></div><div class="btns"><button type="button" class="sbtn sm red" data-edcabut="${stEsc(x.email)}">Cabut akses</button></div></div>`).join('') : '<p class="mut text-sm">Belum ada email editor yang didaftarkan.</p>');
         }
         function admGambarSekolah() {
             const q = stEl('admCari').value.trim().toLowerCase();
@@ -1283,6 +1305,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stEl('admSemuaTim').addEventListener('click', () => admSemua('tim'));
             stEl('admSemuaSek').addEventListener('click', () => admSemua('sekolah'));
             stEl('admCari').addEventListener('input', admGambarSekolah);
+            stEl('admEditorForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const email = stEl('admEditorEmail').value.trim(), catatan = stEl('admEditorCatatan').value.trim(), b = stEl('admEditorTambah');
+                if (!email) return; b.disabled = true; admErr('');
+                try { const r = await admApi({ aksi: 'adminEditorTambah', email, catatan }); if (!r.ok) admErr(r.pesan || 'Gagal mendaftarkan.'); else { stEl('admEditorEmail').value = ''; stEl('admEditorCatatan').value = ''; } } catch (err) { admErr(err.message); }
+                b.disabled = false; admMuat();
+            });
             stEl('admMOk').addEventListener('click', admModalOk);
             stEl('admMBatal').addEventListener('click', admModalTutup);
             stEl('admMKode').addEventListener('keydown', e => { if (e.key === 'Enter') admModalOk(); });
@@ -1295,6 +1324,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 t.disabled = true;
                 try { const r = await admApi({ aksi: 'adminLepas', idKode: t.dataset.lepas, pid: t.dataset.pid }); if (!r.ok) admErr(r.pesan || 'Gagal melepas.'); } catch (err) { admErr(err.message); }
                 admMuat(); return;
+            }
+            const ec = e.target.closest('[data-edcabut]');
+            if (ec) {
+                if (!confirm('Cabut akses edit untuk ' + ec.dataset.edcabut + '? Email ini tidak bisa lagi membuka Google Sheet master.')) return;
+                ec.disabled = true;
+                try { const r = await admApi({ aksi: 'adminEditorHapus', email: ec.dataset.edcabut }); if (!r.ok) admErr(r.pesan || 'Gagal mencabut.'); } catch (err) { admErr(err.message); }
+                admMuat(); return;
+            }
+            if (e.target.closest('#admKunciMaster')) {
+                admModalBuka('Tutup akses publik sheet master', 'Setelah ditutup, hanya pemilik dan email editor terdaftar yang bisa membuka Google Sheet master. Dashboard tetap jalan lewat API. Ketik kode admin untuk melanjutkan.', async kodeAdmin => {
+                    const r = await admApi({ aksi: 'adminMasterKunci', kodeAdmin });
+                    return r.ok ? { html: '<p class="note">Selesai. Sheet master sekarang privat.</p>', pesan: 'Akses publik ditutup', setelah: admMuat } : { galat: r.pesan || 'Gagal.' };
+                });
+                return;
             }
             const ad = e.target.closest('[data-adm]'); if (ad && !ad.disabled) { admAksi(ad); return; }
             const sl = e.target.closest('[data-salin]'); if (sl) { await salinTeks(sl.dataset.salin); sl.textContent = 'Tersalin'; return; }
