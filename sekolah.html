@@ -477,6 +477,11 @@ input:disabled,select:disabled{opacity:.6}
 .gr.ketx{background:var(--infobg)}
 .gr.ketx .ktsel{border-color:var(--pri2);background:var(--infobg)}
 .gr.low.ketx{background:var(--badbg)}
+.ktp .ktx{grid-area:auto;grid-column:1/-1;margin-top:0}
+.ktb{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gr.ketx .ktb{border-color:var(--pri2);background:var(--infobg)}
+.ktp.open{grid-area:kp}
+.ktp{grid-area:kp}
 .hint{font-size:12px;color:var(--mut);margin:0 0 8px}
 .kelas{font-size:12px;font-weight:800;color:var(--pri2);padding:10px 0 4px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
@@ -486,7 +491,7 @@ input:disabled,select:disabled{opacity:.6}
 .gr{grid-template-columns:28px minmax(0,1fr) 80px;grid-template-areas:"no nm pc" "fl fl fl" "kt kt kt" "kp kp kp";row-gap:8px}
 .flds{grid-template-columns:repeat(3,minmax(0,1fr))}
 .fl .lb{display:block}
-.ktp{grid-template-columns:1fr;margin-top:0}
+.ktp{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:0}
 }
 .bar .done{display:none;background:var(--ok)}
 @media (pointer:coarse){body.kbd .bar .btn{display:none}body.kbd .bar .done{display:block}}
@@ -611,7 +616,7 @@ input,select{scroll-margin:130px 0 150px}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 7;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 8;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -733,7 +738,7 @@ async function muatPeriode() {
     if (d.sekolah && d.sekolah.npsn) S.sekolah.npsn = d.sekolah.npsn;
     S.siswa = d.siswa; S.bukti = d.bukti || null; S.statusBulan = st && st.ok ? st.bulan : [];
     S.v = {}; const ab = d.absen || { efektif: 0, baris: {} };
-    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? { sakit: b.sakit ? String(b.sakit) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.sakit)), izin: b.izin ? String(b.izin) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.izin)), alpha: b.alpha ? String(b.alpha) : (b.ket && b.ket !== 'LAIN' ? '' : String(b.alpha)), ket: b.ket || '', catatan: b.catatan || '' } : { sakit: '', izin: '', alpha: '', ket: '', catatan: '' }; });
+    S.buka = {}; S.siswa.forEach(s => { const b = ab.baris[s.nisn]; S.v[s.nisn] = b ? { sakit: b.sakit ? String(b.sakit) : (ketList(b.ket).some(k => KET[k]) ? '' : String(b.sakit)), izin: b.izin ? String(b.izin) : (ketList(b.ket).some(k => KET[k]) ? '' : String(b.izin)), alpha: b.alpha ? String(b.alpha) : (ketList(b.ket).some(k => KET[k]) ? '' : String(b.alpha)), ket: b.ket || '', catatan: b.catatan || '' } : { sakit: '', izin: '', alpha: '', ket: '', catatan: '' }; });
     S.efektif = ab.efektif ? String(ab.efektif) : '';
     S.tersimpan = Object.keys(ab.baris).length > 0; S.kotor = false;
     if (ab.pengisi && !$('inPengisi').value) $('inPengisi').value = ab.pengisi;
@@ -790,15 +795,19 @@ function isiPilihanKelas() {
 $('selKelas').addEventListener('change', renderGrid);
 const nisnTampil = n => String(n == null ? '' : n).replace(/^[\s'’`]+/, '');   // buang tanda ' di depan NISN dari Google Sheet
 const angka = v => { const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; };
-const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };   // tidak dihitung absennya
-const KET_LAIN = 'LAIN';   // "Lainnya": catatan manual, absen tetap dihitung
+const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 'Tidak bersekolah lagi', PINDAH: 'Pindah sekolah' };   // status: tidak dihitung rata-rata & selalu merah
+const KET_NAIK = 'NAIK', KET_LAIN = 'LAIN';   // NAIK: pengecualian, tidak pernah merah. LAIN: catatan manual
+const KET_SEMUA = Object.assign({}, KET, { NAIK: 'Sudah naik jenjang kelas', LAIN: 'Lainnya (isi sendiri)' });
+const KET_URUT = ['LULUS', 'BUKAN', 'BERHENTI', 'PINDAH', 'NAIK', 'LAIN'];
+const ketList = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
 const BATAS_HADIR = 85;
 function hitungBaris(n) {
-  const e = angka(S.efektif), v = S.v[n] || {};
-  const ex = !!(v.ket && v.ket !== KET_LAIN);   // lulus/pindah/dll: tidak ikut rata-rata, tetapi bila ada angka absen tetap diperiksa
+  const e = angka(S.efektif), v = S.v[n] || {}, L = ketList(v.ket), naik = L.includes(KET_NAIK), st = L.filter(k => KET[k]);
   const tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
   const persen = e > 0 ? Math.round(hadir * 1000 / e) / 10 : null, salah = e > 0 && tidak > e;
-  return { ket: ex ? v.ket : '', tidak, salah, hadir, persen, rendah: !salah && persen !== null && persen < BATAS_HADIR };
+  const rendah = !naik && !salah && persen !== null && persen < BATAS_HADIR;   // < 85% (kecuali sudah naik jenjang)
+  const statusMerah = !naik && st.length > 0;                                   // lulus/bukan siswa/pindah/berhenti
+  return { ket: st.length ? st.map(k => KET[k]).join(', ') : '', naik, tidak, salah, hadir, persen, rendah, merah: rendah || statusMerah };
 }
 function pcHtml(h) {
   if (h.ket && h.tidak === 0) return '-<small>tidak dihitung</small>';
@@ -807,10 +816,15 @@ function pcHtml(h) {
 }
 function refreshRow(row) {
   const n = row.dataset.n, v = S.v[n], h = hitungBaris(n);
-  row.classList.toggle('err', h.salah); row.classList.toggle('low', h.rendah); row.classList.toggle('ketx', !!h.ket);
+  const L = ketList(v.ket);
+  row.classList.toggle('err', h.salah); row.classList.toggle('low', h.merah); row.classList.toggle('ketx', L.length > 0);
   row.querySelector('[data-pc]').innerHTML = pcHtml(h);
-  const sel = row.querySelector('.ktsel'); sel.value = v.ket || ''; sel.disabled = S.terkunci;
-  const tx = row.querySelector('.ktx'); tx.classList.toggle('open', v.ket === KET_LAIN); tx.disabled = S.terkunci;
+  const buka = !!(S.buka && S.buka[n]);
+  row.querySelectorAll('input[data-ks]').forEach(cb => { cb.checked = L.includes(cb.value); cb.disabled = S.terkunci; cb.closest('.kc').classList.toggle('on', cb.checked); });
+  const kb = row.querySelector('.ktb'), nama = KET_URUT.filter(k => L.includes(k)).map(k => k === KET_LAIN ? (v.catatan ? 'Lainnya: ' + v.catatan : 'Lainnya') : KET_SEMUA[k]).join(', ');
+  kb.textContent = (nama || 'Keterangan') + (buka ? ' \u25B4' : ' \u25BE'); kb.title = nama; kb.setAttribute('aria-expanded', buka ? 'true' : 'false');
+  row.querySelector('.ktp').classList.toggle('open', buka);
+  const tx = row.querySelector('.ktx'); tx.classList.toggle('open', L.includes(KET_LAIN)); tx.disabled = S.terkunci;
   if (document.activeElement !== tx) tx.value = v.catatan || '';
   row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci; });
 }
@@ -821,8 +835,9 @@ function barisHtml(s, no) {
     <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(nisnTampil(s.nisn))}</div></div>
     <div class="flds">${fld('sakit', 'Sakit')}${fld('izin', 'Izin')}${fld('alpha', 'Alpha')}</div>
     <div class="pc" data-pc></div>
-    <select class="ktsel" data-ks aria-label="Keterangan ${nm}"><option value="">Keterangan</option>${Object.keys(KET).map(k => `<option value="${k}">${esc(KET[k])}</option>`).join('')}<option value="LAIN">Lainnya (isi sendiri)...</option></select>
-    <input type="text" class="ktx" data-kx maxlength="80" placeholder="Tulis keterangan..." aria-label="Keterangan lainnya ${nm}"></div>`;
+    <button type="button" class="ktb" data-kt aria-expanded="false" aria-label="Keterangan ${nm}">Keterangan</button>
+    <div class="ktp">${KET_URUT.map(k => `<label class="kc"><input type="checkbox" data-ks value="${k}"><span>${esc(KET_SEMUA[k])}</span></label>`).join('')}
+    <input type="text" class="ktx" data-kx maxlength="80" placeholder="Tulis keterangan..." aria-label="Keterangan lainnya ${nm}"></div></div>`;
 }
 function renderGrid() {
   const box = $('gridBox'); if (!S.siswa.length) { box.innerHTML = '<div class="msg warn">Tidak ada siswa terdaftar untuk sekolah ini di data master.</div>'; $('sum').innerHTML = ''; return; }
@@ -853,15 +868,21 @@ $('gridBox').addEventListener('click', e => {
   row.querySelector('input[data-f="' + f + '"]').value = v[f];
   refreshRow(row); simpanDraft(); ringkas();
 });
+$('gridBox').addEventListener('click', e => {
+  const b = e.target.closest('[data-kt]'); if (!b) return;
+  const row = b.closest('.gr'), n = row.dataset.n; S.buka = S.buka || {}; S.buka[n] = !S.buka[n]; refreshRow(row);
+});
 $('gridBox').addEventListener('change', e => {
   const c = e.target; if (!c.hasAttribute('data-ks')) return;
   const row = c.closest('.gr'), n = row.dataset.n;
   if (!S.terkunci) {
-    S.v[n].ket = c.value; if (c.value !== KET_LAIN) S.v[n].catatan = '';
+    const pilih = [...row.querySelectorAll('input[data-ks]')].filter(x => x.checked).map(x => x.value);
+    S.v[n].ket = KET_URUT.filter(k => pilih.includes(k)).join(',');
+    if (!pilih.includes(KET_LAIN)) S.v[n].catatan = '';
     simpanDraft(); ringkas();
   }
   refreshRow(row);
-  if (c.value === KET_LAIN) { const tx = row.querySelector('.ktx'); if (tx && !S.terkunci) tx.focus(); }
+  if (c.value === KET_LAIN && c.checked) { const tx = row.querySelector('.ktx'); if (tx && !S.terkunci) tx.focus(); }
 });
 $('gridBox').addEventListener('input', e => {
   const t = e.target; if (!t.hasAttribute('data-kx')) return;
@@ -871,10 +892,10 @@ $('inEfektif').addEventListener('input', e => { e.target.value = e.target.value.
 $('inPengisi').addEventListener('input', e => store.set('sk_pengisi', e.target.value));
 function ringkas() {
   const e = angka(S.efektif); let n = 0, salah = 0, total = 0, isi = 0, rendah = 0, ket = 0;
-  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.ket) { ket++; if (h.rendah) rendah++; return; } if (h.salah) salah++; if (h.rendah) rendah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
+  S.siswa.forEach(s => { const h = hitungBaris(s.nisn); n++; if (h.ket) ket++; if (h.merah) rendah++; if (h.ket) return; if (h.salah) salah++; if (e > 0 && !h.salah) { total += h.persen; isi++; } });
   $('sum').innerHTML = `<span>Siswa: <b>${n}</b></span><span>Hari efektif: <b>${e || '-'}</b></span><span>Rata-rata kehadiran: <b>${isi ? (Math.round(total / isi * 10) / 10).toString().replace('.', ',') + '%' : '-'}</b></span>`
     + (ket ? `<span>Keterangan: <b>${ket}</b> siswa</span>` : '')
-    + (rendah ? `<span style="color:var(--bad)">Di bawah ${BATAS_HADIR}%: <b>${rendah}</b> siswa</span>` : '')
+    + (rendah ? `<span style="color:var(--bad)">Bertanda merah: <b>${rendah}</b> siswa</span>` : '')
     + (salah ? `<span style="color:var(--bad)">Baris salah: <b>${salah}</b> (sakit+izin+alpha melebihi hari efektif)</span>` : '');
 }
 // papan ketik terbuka di HP: tombol bawah diganti satu tombol "Selesai mengetik" agar tidak menutupi isian
@@ -889,6 +910,8 @@ function periksaForm() {
   if (!$('inPengisi').value.trim()) return 'Isi nama pengisi terlebih dahulu.';
   const salah = S.siswa.filter(s => hitungBaris(s.nisn).salah);
   if (salah.length) return 'Jumlah sakit + izin + alpha melebihi hari efektif pada ' + salah.length + ' siswa (baris berwarna merah), misalnya ' + salah[0].nama + '. Perbaiki dulu.';
+  const kosong = S.siswa.find(s => ketList(S.v[s.nisn].ket).includes(KET_LAIN) && !String(S.v[s.nisn].catatan || '').trim());
+  if (kosong) return 'Keterangan "Lainnya" untuk ' + kosong.nama + ' dicentang tetapi belum diisi tulisannya.';
   return '';
 }
 async function simpan(tanpaKonfirmasi) {
@@ -927,11 +950,11 @@ function buildPdfDoc(rowsData, meta) {
   const PW = 297, PH = 210, ML = 12, MR = 12, MT = 10, MB = 10, SIG_H = 50, GAP = 4;
   const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const rows = rowsData.map((r, i) => {
-    const tampil = !r.ket || r.ada;   // siswa berketerangan tanpa angka absen: strip (-)
+    const tampil = !r.ex || r.ada;   // siswa berketerangan tanpa angka absen: strip (-)
     const ketTeks = [r.rendah ? 'TIDAK KOMITMEN' : '', r.ket || '', r.catatan || ''].filter(Boolean).join(' - ');
     return [String(i + 1), pdfText(r.pengurus), pdfText(nisnTampil(r.nisn)), pdfText(r.nama), pdfText(kelasAngka(r.kelas)),
       tampil ? String(r.efektif) : '-', tampil ? String(r.sakit) : '-', tampil ? String(r.izin) : '-', tampil ? String(r.alpha) : '-',
-      tampil ? String(r.persen).replace('.', ',') + '%' : '-', pdfText(r.pendamping), pdfText(ketTeks)];
+      tampil ? String(r.persen).replace('.', ',') + '%' : '-', pdfText(r.pendamping), { content: pdfText(ketTeks), merah: !!r.merah }];
   });
   const head = [[
     { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 }, { content: 'NAMA SISWA', rowSpan: 2 }, { content: 'KELAS', rowSpan: 2 },
@@ -961,7 +984,7 @@ function buildPdfDoc(rowsData, meta) {
       didParseCell: d => {
         if (d.section !== 'body') return;
         const raw = d.row.raw, ket = Array.isArray(raw) ? String(raw[11] && raw[11].content !== undefined ? raw[11].content : raw[11] || '') : '';
-        if (ket.indexOf('TIDAK KOMITMEN') === 0) {   // kehadiran di bawah 85%: baris diarsir merah
+        if (Array.isArray(raw) && raw[11] && raw[11].merah) {   // di bawah 85% atau status lulus/pindah/dll (kecuali sudah naik jenjang): baris diarsir merah
           d.cell.styles.fillColor = [254, 202, 202];
           if (d.column.index === 9 || d.column.index === 11) { d.cell.styles.textColor = [153, 0, 0]; d.cell.styles.fontStyle = 'bold'; }
         }
@@ -1043,7 +1066,7 @@ async function bukaPdf(pra) {
   }
   const p = periode(), e = angka(S.efektif);
   const data = S.siswa.map(s => { const h = hitungBaris(s.nisn), v = S.v[s.nisn];
-    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, rendah: !!h.rendah, ada: h.tidak > 0, ket: (v.ket && v.ket !== KET_LAIN) ? KET[v.ket].toUpperCase() : '', catatan: v.ket === KET_LAIN ? String(v.catatan || '').trim().toUpperCase() : '' }; });
+    return { pengurus: s.pengurus, nisn: s.nisn, nama: s.nama, kelas: s.kelas, pendamping: s.pendamping, efektif: e, sakit: angka(v.sakit), izin: angka(v.izin), alpha: angka(v.alpha), persen: h.persen, rendah: !!h.rendah, merah: !!h.merah, ex: !!h.ket, ada: h.tidak > 0, ket: KET_URUT.filter(k => k !== KET_LAIN && ketList(v.ket).includes(k)).map(k => KET_SEMUA[k].toUpperCase()).join(', '), catatan: ketList(v.ket).includes(KET_LAIN) ? String(v.catatan || '').trim().toUpperCase() : '' }; });
   const meta = { sekolah: S.sekolah.nama, kop: S.sekolah.nama + (S.sekolah.npsn ? ' || ' + S.sekolah.npsn : ''), bulan: BULAN[p.bulan - 1], tahun: p.tahun, tw: p.triwulan };
   pdfNama = namaPdf(meta.sekolah, meta.tw, meta.bulan, meta.tahun);
   try {
