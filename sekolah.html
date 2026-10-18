@@ -475,6 +475,10 @@ input:disabled,select:disabled{opacity:.6}
 .gr.low .st,.gr.err .st{border-color:var(--bad);box-shadow:inset 0 2px 7px rgba(220,38,38,.38)}
 .gr.low .pc,.gr.err .pc{color:var(--bad)}
 .gr.ketx{background:var(--infobg)}
+.gr .kn{margin-top:4px;font-size:11.5px;line-height:1.35}.gr .kn[hidden]{display:none}
+.gr .kn .kl{display:block;color:var(--mut);font-weight:700}.gr .kn .ks{display:block;margin-top:2px;padding:4px 6px;border-radius:6px;background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);color:inherit}
+.gr.klc .flds{opacity:.45;filter:grayscale(1)}.gr.klc .st{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(120,120,120,.18) 6px 12px)}
+.gr.klc .st input,.gr.klc .sb{cursor:not-allowed}
 .gr.ketx .ktsel{border-color:var(--pri2);background:var(--infobg)}
 .gr.low.ketx{background:var(--badbg)}
 .ktp .ktx{grid-area:auto;grid-column:1/-1;margin-top:0}
@@ -557,7 +561,7 @@ input,select{scroll-margin:130px 0 150px}
 
     <div class="card">
       <h2>2. Isi absensi</h2>
-      <p class="hint">Ketuk <b>+</b> atau <b>&minus;</b> (atau ketik angkanya). Baris bertepi <b style="color:var(--bad)">merah</b> = kehadiran di bawah 85%. Ketuk <b>Keterangan</b> bila siswa lulus, pindah, atau tidak bersekolah di sini.</p>
+      <p class="hint">Ketuk <b>+</b> atau <b>&minus;</b> (atau ketik angkanya). Baris bertepi <b style="color:var(--bad)">merah</b> = kehadiran di bawah 85%. Ketuk <b>Keterangan</b> bila siswa lulus, pindah, atau tidak bersekolah di sini. Untuk <b>lulus</b>, <b>pindah</b>, <b>tidak bersekolah lagi</b>, dan <b>bukan siswa sekolah ini</b>, isian sakit/izin/alpha otomatis terkunci karena tidak perlu diisi.</p>
       <div class="row" style="margin-bottom:12px">
         <div><label for="inEfektif">Kegiatan efektif (hari)</label><input id="inEfektif" inputmode="numeric" placeholder="mis. 20"></div>
         <div><label for="inPengisi">Nama pengisi</label><input id="inPengisi" autocomplete="name" placeholder="Nama guru / operator"></div>
@@ -799,15 +803,19 @@ const KET = { LULUS: 'Siswa lulus', BUKAN: 'Bukan siswa sekolah ini', BERHENTI: 
 const KET_NAIK = 'NAIK', KET_LAIN = 'LAIN';   // NAIK: pengecualian, tidak pernah merah. LAIN: catatan manual
 const KET_SEMUA = Object.assign({}, KET, { NAIK: 'Sudah naik jenjang kelas', LAIN: 'Lainnya (isi sendiri)' });
 const KET_URUT = ['LULUS', 'BUKAN', 'BERHENTI', 'PINDAH', 'NAIK', 'LAIN'];
+const KET_KUNCI = ['LULUS', 'BUKAN', 'BERHENTI', 'PINDAH'];   // siswa tidak lagi di sekolah ini: sakit/izin/alpha terkunci & tidak perlu diisi
+const KET_SURAT = ['LULUS', 'BERHENTI'];          // lulus & putus sekolah: sekolah memberi surat keterangan kolektif
+const PESAN_SURAT = 'Untuk siswa lulus dan putus sekolah, mohon berikan surat keterangan kolektif dari sekolah untuk penanganan lebih lanjut.';
 const ketList = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
 const BATAS_HADIR = 85;
 function hitungBaris(n) {
   const e = angka(S.efektif), v = S.v[n] || {}, L = ketList(v.ket), naik = L.includes(KET_NAIK), st = L.filter(k => KET[k]);
-  const tidak = angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
+  const kunci = L.some(k => KET_KUNCI.includes(k)), surat = L.some(k => KET_SURAT.includes(k));
+  const tidak = kunci ? 0 : angka(v.sakit) + angka(v.izin) + angka(v.alpha), hadir = Math.max(0, e - tidak);
   const persen = e > 0 ? Math.round(hadir * 1000 / e) / 10 : null, salah = e > 0 && tidak > e;
   const rendah = !naik && !salah && persen !== null && persen < BATAS_HADIR;   // < 85% (kecuali sudah naik jenjang)
   const statusMerah = !naik && st.length > 0;                                   // lulus/bukan siswa/pindah/berhenti
-  return { ket: st.length ? st.map(k => KET[k]).join(', ') : '', naik, tidak, salah, hadir, persen, rendah, merah: rendah || statusMerah };
+  return { ket: st.length ? st.map(k => KET[k]).join(', ') : '', kunci, surat, naik, tidak, salah, hadir, persen, rendah, merah: rendah || statusMerah };
 }
 function pcHtml(h) {
   if (h.ket && h.tidak === 0) return '-<small>tidak dihitung</small>';
@@ -817,6 +825,10 @@ function pcHtml(h) {
 function refreshRow(row) {
   const n = row.dataset.n, v = S.v[n], h = hitungBaris(n);
   const L = ketList(v.ket);
+  if (h.kunci) ['sakit', 'izin', 'alpha'].forEach(f => { v[f] = ''; const i = row.querySelector('input[data-f="' + f + '"]'); if (i) i.value = ''; });   // terkunci: kosongkan isian
+  row.classList.toggle('klc', h.kunci);
+  const kn = row.querySelector('.kn'); kn.hidden = !(h.kunci || h.surat);
+  kn.innerHTML = (h.kunci ? '<span class="kl"><i aria-hidden="true">&#128274;</i> Absensi terkunci, tidak perlu diisi.</span>' : '') + (h.surat ? '<span class="ks">' + PESAN_SURAT + '</span>' : '');
   row.classList.toggle('err', h.salah); row.classList.toggle('low', h.merah); row.classList.toggle('ketx', L.length > 0);
   row.querySelector('[data-pc]').innerHTML = pcHtml(h);
   const buka = !!(S.buka && S.buka[n]);
@@ -826,13 +838,13 @@ function refreshRow(row) {
   row.querySelector('.ktp').classList.toggle('open', buka);
   const tx = row.querySelector('.ktx'); tx.classList.toggle('open', L.includes(KET_LAIN)); tx.disabled = S.terkunci;
   if (document.activeElement !== tx) tx.value = v.catatan || '';
-  row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci; });
+  row.querySelectorAll('.st input, .sb').forEach(el => { el.disabled = S.terkunci || h.kunci; });
 }
 function barisHtml(s, no) {
   const v = S.v[s.nisn], nm = esc(s.nama);
   const fld = (f, lb) => `<div class="fl"><span class="lb">${lb}</span><div class="st"><button type="button" class="sb" data-act="min" data-g="${f}" aria-label="Kurangi ${lb.toLowerCase()} ${nm}">&minus;</button><input inputmode="numeric" pattern="[0-9]*" maxlength="2" data-f="${f}" value="${esc(v[f])}" placeholder="0" aria-label="${lb} ${nm}"><button type="button" class="sb" data-act="plus" data-g="${f}" aria-label="Tambah ${lb.toLowerCase()} ${nm}">+</button></div></div>`;
   return `<div class="grid gr" data-n="${esc(s.nisn)}"><div class="c-no">${no}</div>
-    <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(nisnTampil(s.nisn))}</div></div>
+    <div class="c-nm"><div class="nm">${nm}</div><div class="mt">NISN ${esc(nisnTampil(s.nisn))}</div><div class="kn" hidden></div></div>
     <div class="flds">${fld('sakit', 'Sakit')}${fld('izin', 'Izin')}${fld('alpha', 'Alpha')}</div>
     <div class="pc" data-pc></div>
     <button type="button" class="ktb" data-kt aria-expanded="false" aria-label="Keterangan ${nm}">Keterangan</button>
@@ -861,7 +873,7 @@ $('gridBox').addEventListener('input', e => {
 $('gridBox').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const row = b.closest('.gr'), n = row.dataset.n, v = S.v[n];
-  if (S.terkunci) return;
+  if (S.terkunci || hitungBaris(n).kunci) return;
   const f = b.dataset.g, cur = angka(v[f]), ef = angka(S.efektif);
   if (b.dataset.act === 'plus') { if (ef > 0 && hitungBaris(n).tidak >= ef) return; v[f] = String(Math.min(31, cur + 1)); }
   else v[f] = cur > 0 ? String(cur - 1) : '';
