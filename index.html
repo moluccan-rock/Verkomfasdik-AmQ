@@ -554,7 +554,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         html { overflow-x: hidden; }
         body { height: auto; min-height: var(--app-h); overflow-x: clip; }
         /* Halaman menggulir NORMAL (bukan area terkunci): dasar halaman selalu bisa dicapai, ada ruang & area aman di bawah. */
-        main { min-width: 0; padding-bottom: calc(2rem + env(safe-area-inset-bottom)) !important; }
+        main { min-width: 0; padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important; }
         /* Panel filter: SELALU tetap di tempat (fixed) sehingga tidak ikut menggulir; bisa disembunyikan/ditampilkan di semua perangkat.
            >=1024px: panel mendorong konten (mode tersemat). <1024px: panel melayang di atas konten dengan latar gelap. */
         #sidebarPanel { position: fixed; top: 0; left: 0; height: var(--app-h); max-height: var(--app-h); overscroll-behavior: contain; }
@@ -574,9 +574,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         @media (min-width: 1280px) { :root { --card-h: clamp(18rem, calc(var(--app-h) - 19rem), 70rem); } }
         .chart-box { position: relative; flex: 1 1 0; min-height: 0; width: 100%; overflow: hidden; }
         .chart-box > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
-        #viewDatabase { height: max(26rem, calc(var(--app-h) - 14rem)); }
-        @media (max-width: 767.98px) { #viewDatabase { height: max(26rem, calc(var(--app-h) - 3rem)); } }
+        #viewDatabase { height: var(--db-h, max(26rem, calc(var(--app-h) - 14rem))); }
 
+
+        /* ===== Kop (judul + pengguna + tombol) menempel di atas saat halaman digulir ===== */
+        .kop-sticky { position: sticky; top: 0; z-index: 20; margin: -1rem -1rem 1rem; padding: calc(.75rem + env(safe-area-inset-top)) 1rem .75rem; background: rgba(241, 245, 249, .86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(148, 163, 184, .25); }
+        .dark .kop-sticky { background: rgba(15, 23, 42, .82); border-bottom-color: rgba(255, 255, 255, .08); }
+        @media (min-width: 640px) { .kop-sticky { margin: -1.25rem -1.25rem 1rem; padding-left: 1.25rem; padding-right: 1.25rem; } }
+        @media (min-width: 768px) { .kop-sticky { margin: -1.5rem -1.5rem 1rem; padding-left: 1.5rem; padding-right: 1.5rem; } }
+        /* HP: kop dibuat ringkas satu baris judul + satu baris tombol yang bisa digeser, supaya tidak memakan layar */
+        @media (max-width: 767.98px) {
+            .kop-sticky .kop-title { font-size: 1rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .kop-sticky .kop-sub { display: none; }
+            .kop-sticky .kop-actions { flex-wrap: nowrap; overflow-x: auto; width: 100%; padding-bottom: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+            .kop-sticky .kop-actions::-webkit-scrollbar { display: none; }
+            .kop-sticky .kop-actions > * { flex-shrink: 0; }
+            .kop-sticky > div { gap: .5rem !important; }
+        }
         /* ===== TTD & cap darurat (khusus admin) ===== */
         .dar-panel { flex: 0 0 auto; max-height: 46vh; overflow: auto; background: #1e293b; color: #e2e8f0; padding: 10px 14px 12px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 12px; }
         .dar-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -719,19 +733,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </aside>
 
     <main class="flex-1 flex flex-col p-4 sm:p-5 md:p-6 min-w-0">
-        <header class="mb-4 shrink-0 flex flex-col gap-4">
+        <div class="kop-sticky" id="kopSticky">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 xl:gap-4">
                 <div class="flex items-center gap-3.5 min-w-0 w-full xl:w-auto">
                     <button type="button" id="btnSidebar" aria-controls="sidebarPanel" aria-expanded="false" aria-label="Tampilkan atau sembunyikan panel filter" title="Panel filter" onclick="toggleSidebar()" class="sb-toggle glass-card p-3 rounded-2xl text-slate-700 dark:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition flex items-center justify-center flex-shrink-0">
                         <i class="fa-solid fa-bars text-base"></i>
                     </button>
                     <div class="min-w-0 flex-1">
-                        <h2 class="text-lg sm:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight leading-snug break-words">e-SIM Verkom Fasdik PKH Kota Ambon</h2>
-                        <p class="text-xs text-slate-600 dark:text-indigo-200/80 mt-1">Rekapitulasi Data Siswa & Kehadiran KPM Kota Ambon</p>
+                        <h2 class="kop-title text-lg sm:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight leading-snug break-words">e-SIM Verkom Fasdik PKH Kota Ambon</h2>
+                        <p class="kop-sub text-xs text-slate-600 dark:text-indigo-200/80 mt-1">Rekapitulasi Data Siswa & Kehadiran KPM Kota Ambon</p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 flex-shrink-0 self-start xl:self-auto">
+                <div class="kop-actions flex flex-wrap items-center gap-2 flex-shrink-0 self-start xl:self-auto">
                     <div id="userChip" class="uchip"><span><span id="chipNama"></span><small id="chipKel"></small></span><button type="button" id="btnKeluarTim">Keluar</button></div>
                     <button onclick="toggleTheme()" class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center hover:bg-white/40 dark:hover:bg-white/15 transition duration-300 shadow-lg border-white/50 dark:border-white/15" title="Ganti Tema">
                         <i id="themeIcon" class="fa-solid fa-sun text-yellow-300 text-lg"></i>
@@ -745,6 +759,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </button>
                 </div>
             </div>
+        </div>
+        <header class="mb-4 shrink-0 flex flex-col gap-4">
 
             <!-- Banner peringatan data (muncul otomatis bila perlu) -->
             <div id="versionBanner" class="no-print hidden mb-3 rounded-xl px-4 py-2.5 text-xs font-semibold bg-indigo-500/15 border border-indigo-500/40 text-indigo-800 dark:text-indigo-200"></div>
@@ -1001,7 +1017,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 21;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 22;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1108,6 +1124,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         });
 
         // =================== TAB ===================
+
+        // ===== Tinggi layar utuh: kartu grafik & tabel database mengisi sisa layar persis (tanpa bergeser atas-bawah) =====
+        let fitRaf = 0;
+        function fitViews() {
+            cancelAnimationFrame(fitRaf);
+            fitRaf = requestAnimationFrame(() => {
+                const main = document.querySelector('main'); if (!main) return;
+                const H = (window.visualViewport && window.visualViewport.height) || window.innerHeight, sy = window.scrollY || 0;
+                const padB = parseFloat(getComputedStyle(main).paddingBottom) || 16;
+                const root = document.documentElement.style;
+                const grid = document.querySelector('.chart-grid'), vd = document.getElementById('viewDashboard'), vb = document.getElementById('viewDatabase');
+                if (vd && !vd.classList.contains('hidden') && grid) {
+                    const avail = H - (grid.getBoundingClientRect().top + sy) - padB;
+                    const n = grid.children.length, cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length, gap = parseFloat(getComputedStyle(grid).rowGap) || 16;
+                    const per = cols > 1 ? avail : (avail - (n - 1) * gap) / n;
+                    root.setProperty('--card-h', Math.round(Math.max(240, Math.min(1100, per))) + 'px');
+                }
+                if (vb && !vb.classList.contains('hidden')) {
+                    const avail = H - (vb.getBoundingClientRect().top + sy) - padB;
+                    root.setProperty('--db-h', Math.round(Math.max(300, avail)) + 'px');
+                }
+            });
+        }
+        window.addEventListener('resize', fitViews);
+        window.addEventListener('orientationchange', () => setTimeout(fitViews, 300));
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViews);
+        document.addEventListener('DOMContentLoaded', () => {
+            fitViews();
+            if (window.ResizeObserver) { const ro = new ResizeObserver(fitViews); ['kopSticky'].forEach(i => { const e = document.getElementById(i); if (e) ro.observe(e); }); const h = document.querySelector('main > header'); if (h) ro.observe(h); const k = document.querySelector('#viewDashboard > div'); if (k) ro.observe(k); }
+            setTimeout(fitViews, 600); setTimeout(fitViews, 2000);
+        });
         window.switchTab = function (tab) {
             const views = { dashboard: 'viewDashboard', database: 'viewDatabase', status: 'viewStatus', admin: 'viewAdmin' };
             const btns = { dashboard: 'btnTabDashboard', database: 'btnTabDatabase', status: 'btnTabStatus', admin: 'btnTabAdmin' };
@@ -1119,6 +1166,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 v.classList.toggle('hidden', !aktif); v.classList.toggle('flex', aktif);
                 const tampil = bt.style.display !== 'none'; bt.className = aktif ? on : off; if (!tampil) bt.style.display = 'none';
             });
+            fitViews();
             if (tab === 'dashboard') { if (chartSebaran) chartSebaran.resize(); if (chartSekolah) chartSekolah.resize(); }
             if (tab === 'status') statusInit();
             if (tab === 'admin') admMuat();
