@@ -576,6 +576,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         .chart-box > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
         #viewDatabase { height: max(26rem, calc(var(--app-h) - 14rem)); }
         @media (max-width: 767.98px) { #viewDatabase { height: max(26rem, calc(var(--app-h) - 3rem)); } }
+
+        /* ===== TTD & cap darurat (khusus admin) ===== */
+        .dar-panel { flex: 0 0 auto; max-height: 46vh; overflow: auto; background: #1e293b; color: #e2e8f0; padding: 10px 14px 12px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 12px; }
+        .dar-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .dar-badge { background: #b45309; color: #fff; border-radius: 99px; padding: 1px 8px; font-size: 10px; margin-left: 6px; }
+        .dar-note { color: #94a3b8; font-size: 11px; margin: 4px 0 8px; line-height: 1.45; }
+        .dar-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        @media (min-width: 720px) { .dar-grid { grid-template-columns: 1fr 1fr; } }
+        .dar-grid label, .dar-chk { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #cbd5e1; }
+        .dar-chk { flex-direction: row; align-items: center; gap: 7px; margin-top: 8px; }
+        .dar-panel input[type=text], .dar-panel input[type=file] { width: 100%; min-width: 0; background: #0f172a; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+        .dar-objs { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+        @media (min-width: 720px) { .dar-objs { grid-template-columns: 1fr 1fr; } }
+        .dar-obj-card { border: 1px solid #475569; border-radius: 10px; padding: 8px 10px; background: #0f172a; }
+        .dar-obj-card.on { border-color: #f59e0b; }
+        .dar-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .dar-b { background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; min-width: 40px; min-height: 38px; padding: 4px 10px; font-size: 14px; font-weight: 700; touch-action: manipulation; }
+        .dar-b:active { background: #475569; }
+        .dar-red { color: #fecaca; border-color: #b91c1c; background: #450a0a; font-size: 12px; }
+        .dar-x { background: #334155; color: #fff; border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; }
+        .dar-msg { color: #fbbf24; font-size: 11px; margin-left: 8px; }
+        .dar-actions { margin-top: 10px; display: flex; align-items: center; flex-wrap: wrap; }
+        .dar-ov { position: absolute; z-index: 5; cursor: grab; touch-action: none; outline: 2px dashed rgba(245,158,11,.9); outline-offset: 1px; user-select: none; -webkit-user-select: none; }
+        .dar-ov.sel { outline: 2px solid #f59e0b; }
+        .dar-ov img { width: 100%; height: auto; display: block; pointer-events: none; -webkit-user-drag: none; }
+        .dar-ov .dar-h { position: absolute; right: -9px; bottom: -9px; width: 22px; height: 22px; border-radius: 50%; background: #f59e0b; border: 2px solid #fff; cursor: nwse-resize; touch-action: none; }
+        .dar-ov .dar-tag { position: absolute; left: 0; top: -17px; font-size: 10px; background: #f59e0b; color: #1c1917; padding: 0 5px; border-radius: 4px; font-weight: 700; white-space: nowrap; }
         .admform{display:grid;grid-template-columns:1fr;gap:8px}@media(min-width:720px){.admform{grid-template-columns:1.4fr 1fr auto}}.admform input{width:100%;min-width:0}
 </style>
 </head>
@@ -830,6 +857,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl mt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wide mb-2 mut">Kode &amp; PIN sekolah</h4>
                 <input id="admCari" type="search" placeholder="Cari kode atau nama sekolah..." style="width:100%;margin-bottom:6px">
+                <div id="admKunciInfo" style="margin-bottom:6px"></div>
                 <div id="admSekolah"></div>
             </div>
         </div>
@@ -927,10 +955,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div id="pdfPreviewName" class="font-mono text-[11px] sm:text-xs font-semibold break-all"></div>
                 <div id="pdfPreviewInfo" class="text-[10px] text-slate-300 mt-0.5"></div>
             </div>
+            <button type="button" id="darBtn" onclick="darToggle()" style="display:none" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs font-bold flex items-center gap-2" title="Khusus admin: tambahkan tanda tangan, cap, nama, dan NIP kepala sekolah"><i class="fa-solid fa-stamp"></i> TTD Darurat</button>
             <button type="button" onclick="savePdfToDevice()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-download"></i> Simpan PDF ke Perangkat</button>
             <button type="button" id="pdfShareBtn" onclick="sharePdf()" class="hidden px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-bold items-center gap-2"><i class="fa-solid fa-share-from-square"></i> Bagikan / Simpan ke Files</button>
             <button type="button" onclick="printFromPreview()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-print"></i> Cetak</button>
             <button type="button" onclick="closePdfPreview()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-xmark"></i> Tutup</button>
+        </div>
+        <div id="darPanel" class="dar-panel" style="display:none">
+            <div class="dar-head"><b><i class="fa-solid fa-stamp"></i> TTD &amp; Cap Darurat <span class="dar-badge">khusus admin</span></b><button type="button" class="dar-x" onclick="darToggle()" aria-label="Tutup panel">Tutup panel</button></div>
+            <p class="dar-note">Gambar hanya diproses di perangkat ini dan <b>tidak disimpan atau dikirim ke server</b>. Geser gambar langsung di pratinjau di bawah, atau pakai tombol panah dan penggeser ukuran. Untuk memperbesar/memperkecil bisa juga menarik titik di sudut kanan bawah gambar.</p>
+            <div class="dar-grid">
+                <label>Nama Kepala Sekolah<input id="darNama" type="text" maxlength="60" autocomplete="off" placeholder="Nama lengkap beserta gelar"></label>
+                <label>NIP<input id="darNip" type="text" inputmode="numeric" maxlength="30" autocomplete="off" placeholder="mis. 19800101 200501 1 001"></label>
+                <label>Gambar tanda tangan (JPG/PNG)<input id="darFileTtd" type="file" accept="image/jpeg,image/png"></label>
+                <label>Gambar cap sekolah (JPG/PNG)<input id="darFileCap" type="file" accept="image/jpeg,image/png"></label>
+            </div>
+            <label class="dar-chk"><input id="darTrans" type="checkbox" checked> Jadikan latar putih gambar transparan (supaya tidak menutupi tulisan)</label>
+            <div id="darObjs" class="dar-objs"></div>
+            <div class="dar-actions"><button type="button" onclick="darHapusSemua()" class="dar-b dar-red"><i class="fa-solid fa-trash"></i> Hapus semua isian darurat</button><span id="darPesan" class="dar-msg"></span></div>
         </div>
         <div id="pdfPages" class="flex-1 min-h-0 overflow-auto bg-slate-600 px-3 sm:px-6 py-4"></div>
         <p class="shrink-0 px-4 py-2 text-[10px] text-slate-300 bg-slate-800 border-t border-white/10">Pratinjau menampilkan <b>seluruh halaman</b> sesuai file yang akan disimpan/dicetak. Gulir ke bawah untuk melihat halaman berikutnya. Tekan <b>Simpan PDF ke Perangkat</b> (atau <b>Bagikan / Simpan ke Files</b>).</p>
@@ -959,7 +1001,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 19;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 21;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1240,9 +1282,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         function admGambarSekolah() {
             const q = stEl('admCari').value.trim().toLowerCase();
-            const rows = ADM.sekolah.filter(x => !q || (x.kode + ' ' + x.nama + ' ' + x.kecamatan).toLowerCase().includes(q));
-            stEl('admSekolah').innerHTML = rows.length ? rows.map(x => `<div class="admrow"><div style="min-width:0;flex:1 1 220px"><div class="nm" style="font-weight:700;font-size:13.5px">${stEsc(x.kode)} · ${stEsc(x.nama)}</div><div class="mut" style="font-size:12px">${stEsc(x.kecamatan)} ${x.aktif ? '' : '· <b style="color:#d97706">NONAKTIF</b>'} ${x.bisaLihat ? '' : '· PIN lama (tidak bisa dilihat)'}</div></div>
-                <div class="btns"><button type="button" class="sbtn sm" data-adm="lihat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" ${x.bisaLihat ? '' : 'disabled'}>Lihat PIN</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}">PIN baru</button><button type="button" class="sbtn sm ${x.aktif ? 'red' : ''}" data-adm="aktif" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" data-set="${x.aktif ? '0' : '1'}">${x.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></div></div>`).join('') : '<p class="mut text-sm">Tidak ada sekolah yang cocok.</p>';
+            const nk = ADM.sekolah.filter(x => x.terkunci).length;
+            stEl('admKunciInfo').innerHTML = nk ? `<div class="err" style="background:rgba(239,68,68,.14);color:inherit;border-color:rgba(239,68,68,.5)"><b><i class="fa-solid fa-lock"></i> ${nk} sekolah terkunci</b> karena salah PIN berulang. Klik <b>Buka kunci</b> pada sekolah terkait (kuncinya juga terbuka sendiri setelah 15 menit).</div>` : '';
+            const rows = ADM.sekolah.filter(x => !q || (x.kode + ' ' + x.nama + ' ' + x.kecamatan).toLowerCase().includes(q)).sort((p1, p2) => (p2.terkunci ? 1 : 0) - (p1.terkunci ? 1 : 0));
+            stEl('admSekolah').innerHTML = rows.length ? rows.map(x => `<div class="admrow"><div style="min-width:0;flex:1 1 220px"><div class="nm" style="font-weight:700;font-size:13.5px">${stEsc(x.kode)} · ${stEsc(x.nama)}</div><div class="mut" style="font-size:12px">${stEsc(x.kecamatan)} ${x.aktif ? '' : '· <b style="color:#d97706">NONAKTIF</b>'} ${x.terkunci ? '· <span class="badge r"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''} ${x.bisaLihat ? '' : '· PIN lama (tidak bisa dilihat)'}</div></div>
+                <div class="btns">${x.terkunci ? `<button type="button" class="sbtn sm" data-adm="buka" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" style="background:#dc2626;color:#fff"><i class="fa-solid fa-lock-open"></i> Buka kunci</button>` : ''}<button type="button" class="sbtn sm" data-adm="lihat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" ${x.bisaLihat ? '' : 'disabled'}>Lihat PIN</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}">PIN baru</button><button type="button" class="sbtn sm ${x.aktif ? 'red' : ''}" data-adm="aktif" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" data-set="${x.aktif ? '0' : '1'}">${x.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></div></div>`).join('') : '<p class="mut text-sm">Tidak ada sekolah yang cocok.</p>';
         }
         // --- jendela konfirmasi kode admin ---
         function admModalBuka(judul, pesan, aksi) {
@@ -1272,6 +1316,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         function admAksi(el) {
             const a = el.dataset.adm, jenis = el.dataset.jenis, id = el.dataset.id, nama = el.dataset.nama || id;
+            if (a === 'buka') {
+                el.disabled = true;
+                admApi({ aksi: 'adminBukaKunci', id }).then(r => { if (!r.ok) admErr(r.pesan || 'Gagal membuka kunci.'); admMuat(); }).catch(e => { admErr(e.message); admMuat(); });
+                return;
+            }
             if (a === 'aktif') {
                 const aktif = el.dataset.set === '1';
                 if (!confirm((aktif ? 'Aktifkan ' : 'Nonaktifkan ') + nama + '?' + (aktif ? '' : ' Pemakainya langsung tidak bisa masuk.'))) return;
@@ -2079,14 +2128,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <td>${esc(r.pendamping)}</td>
                     <td></td>
                 </tr>`).join('');
-            const sigHtml = `<tr class="sig-row"><td colspan="12" style="border:0;padding:0;">
-                <div style="float:right;width:230px;margin:14px 0 0 0;text-align:center;font-size:11px;break-inside:avoid;page-break-inside:avoid;">
-                    <p style="margin:0;text-align:left;padding-left:20px;">Ambon, &nbsp;&nbsp;&nbsp;&nbsp; ${esc(selectedBulan + ' ' + currentYear)}</p>
-                    <p style="margin:4px 0 0 0;">Mengetahui,<br>Kepala Sekolah</p>
-                    <div style="height:85px;"></div>
-                    <p style="margin:0;font-weight:bold;border-bottom:1px solid #000;min-height:12px;"></p>
-                    <p style="margin:4px 0 0 0;text-align:left;">NIP. ........................................</p>
-                </div></td></tr>`;
+            const sigHtml = sigHtmlFor({ bulan: selectedBulan, tahun: currentYear, sekolah: vSek });
             document.getElementById('printTableBody').innerHTML = printRowsHtml + sigHtml;
 
             closeSidebarOnMobile();
@@ -2193,18 +2235,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             function drawSig(doc, y) {
                 const w = 70, x = PW - MR - w;
+                const pg = doc.internal.getCurrentPageInfo().pageNumber;
+                pdfRec.sig = { pg, x, y, w };
                 doc.setTextColor(0).setFont('helvetica', 'normal').setFontSize(10);
                 doc.text('Ambon,    ' + meta.bulan + ' ' + meta.tahun, x + 5, y + 4);
                 doc.text('Mengetahui,', x + w / 2, y + 10, { align: 'center' });
                 doc.text('Kepala Sekolah', x + w / 2, y + 14.5, { align: 'center' });
                 doc.setLineWidth(0.3).line(x, y + 36, x + w, y + 36);
-                doc.text('NIP. ........................................', x, y + 42);
-                const pg = doc.internal.getCurrentPageInfo().pageNumber;
+                const dn = DAR.on ? pdfText(DAR.nama) : '', nipTeks = 'NIP. ' + ((DAR.on && pdfText(DAR.nip)) || '........................................');
+                if (dn) { doc.setFont('helvetica', 'bold'); doc.text(dn, x + w / 2, y + 35, { align: 'center' }); doc.setFont('helvetica', 'normal'); }
+                doc.text(nipTeks, x, y + 42);
                 rop(pg, { t: 'text', s: 'Ambon,    ' + meta.bulan + ' ' + meta.tahun, x: x + 5, y: y + 4, size: 10, align: 'left' });
                 rop(pg, { t: 'text', s: 'Mengetahui,', x: x + w / 2, y: y + 10, size: 10, align: 'center' });
                 rop(pg, { t: 'text', s: 'Kepala Sekolah', x: x + w / 2, y: y + 14.5, size: 10, align: 'center' });
                 rop(pg, { t: 'line', x1: x, y1: y + 36, x2: x + w, y2: y + 36 });
-                rop(pg, { t: 'text', s: 'NIP. ........................................', x: x, y: y + 42, size: 10, align: 'left' });
+                if (dn) rop(pg, { t: 'text', s: dn, x: x + w / 2, y: y + 35, size: 10, align: 'center', bold: true });
+                rop(pg, { t: 'text', s: nipTeks, x: x, y: y + 42, size: 10, align: 'left' });
+                // gambar tanda tangan & cap (hanya bila admin mengisinya); di pratinjau digambar sebagai lapisan yang bisa digeser
+                if (DAR.on) ['cap', 'ttd'].forEach(k => {
+                    const o = DAR[k]; if (!o || !o.src) return;
+                    const g = darGeom(k, x, y);
+                    try { doc.addImage(o.src, /image\/png/.test(o.src) ? 'PNG' : 'JPEG', g.x, g.y, g.w, g.h); } catch (e) { console.warn('gambar darurat gagal', e); }
+                });
             }
             const fitsWithSig = finalY => finalY + GAP + SIG_H <= PH - MB;
 
@@ -2238,6 +2290,188 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
 
 
+
+        // =================== TTD & CAP DARURAT (khusus admin; hanya di perangkat ini) ===================
+        const DAR = { on: false, sekolah: '', nama: '', nip: '', trans: true, sel: 'ttd', dirty: false, ttd: null, cap: null };
+        const DAR_DEF = { ttd: { dx: 17, dy: 14, w: 32 }, cap: { dx: -4, dy: 8, w: 30 } };
+        let pdfScale = 1, lastPrint = null, darTimer = null;
+        const darEl = id => document.getElementById(id);
+        function darPesan(t) { const e = darEl('darPesan'); if (e) e.textContent = t || ''; }
+        function darHitungOn() { DAR.on = !!(DAR.nama.trim() || DAR.nip.trim() || DAR.ttd || DAR.cap); }
+        function darKlem(k) {
+            const o = DAR[k], sg = pdfRec.sig; if (!o || !sg) return;
+            o.w = Math.max(8, Math.min(90, o.w));
+            const h = o.w * o.r;
+            o.dx = Math.max(2 - sg.x, Math.min(297 - 2 - o.w - sg.x, o.dx));
+            o.dy = Math.max(2 - sg.y, Math.min(210 - 2 - h - sg.y, o.dy));
+        }
+        function darGeom(k, x, y) {
+            const o = DAR[k]; darKlem(k);
+            return { x: x + o.dx, y: y + o.dy, w: o.w, h: o.w * o.r };
+        }
+        // Baris tanda tangan untuk jalur Cetak (HTML); posisi gambar dalam mm mengikuti blok tanda tangan
+        function sigHtmlFor(m) {
+            const e = DAR.on, nm = e ? esc(DAR.nama) : '', nip = e && DAR.nip.trim() ? esc(DAR.nip) : '........................................';
+            const imgs = !e ? '' : ['cap', 'ttd'].map(k => {
+                const o = DAR[k]; if (!o) return '';
+                return `<img src="${o.src}" alt="" style="position:absolute;left:${(o.dx - 9.15).toFixed(1)}mm;top:${o.dy.toFixed(1)}mm;width:${o.w.toFixed(1)}mm;height:auto;z-index:2;-webkit-print-color-adjust:exact;print-color-adjust:exact;">`;
+            }).join('');
+            return `<tr class="sig-row"><td colspan="12" style="border:0;padding:0;">
+                <div style="position:relative;float:right;width:230px;margin:14px 0 0 0;text-align:center;font-size:11px;break-inside:avoid;page-break-inside:avoid;">
+                    <p style="margin:0;text-align:left;padding-left:20px;">Ambon, &nbsp;&nbsp;&nbsp;&nbsp; ${esc(m.bulan + ' ' + m.tahun)}</p>
+                    <p style="margin:4px 0 0 0;">Mengetahui,<br>Kepala Sekolah</p>
+                    <div style="height:85px;"></div>
+                    <p style="margin:0;font-weight:bold;border-bottom:1px solid #000;min-height:12px;">${nm}</p>
+                    <p style="margin:4px 0 0 0;text-align:left;">NIP. ${nip.replace(/^NIP\. /, '')}</p>${imgs}
+                </div></td></tr>`;
+        }
+        function darSegarkanCetak() {
+            if (!lastPrint) return;
+            const row = document.querySelector('#printTableBody .sig-row'); if (!row) return;
+            const tmp = document.createElement('tbody'); tmp.innerHTML = sigHtmlFor(lastPrint.meta);
+            row.replaceWith(tmp.firstElementChild);
+        }
+        function darBangunUlangPdf() {
+            if (!lastPrint || !window.jspdf) return null;
+            const doc = buildPdfDoc(lastPrint.data, lastPrint.meta);
+            pdfBlob = doc.output('blob'); if (pdfUrl) URL.revokeObjectURL(pdfUrl); pdfUrl = URL.createObjectURL(pdfBlob);
+            DAR.dirty = false; return doc;
+        }
+        function darGambarUlangHalaman() {
+            const box = darEl('pdfPages'), top = box.scrollTop; renderPdfPages(); box.scrollTop = top;
+        }
+        function darSentuh(teks) {          // perubahan posisi/ukuran/gambar
+            darHitungOn(); DAR.dirty = true; darSegarkanCetak(); darPlaceOverlays(); darKartu();
+        }
+        function darSentuhTeks() {          // perubahan nama/NIP: gambar ulang teks
+            darHitungOn(); DAR.dirty = true; clearTimeout(darTimer);
+            darTimer = setTimeout(() => { darBangunUlangPdf(); darSegarkanCetak(); darGambarUlangHalaman(); }, 280);
+        }
+        window.darToggle = function () {
+            const p = darEl('darPanel'); const buka = p.style.display === 'none';
+            p.style.display = buka ? 'block' : 'none';
+            if (buka) { darKartu(); const sg = pdfRec.sig, w = darEl('pdfPages').children[sg ? sg.pg - 1 : 0]; if (w && w.scrollIntoView) w.scrollIntoView({ block: 'center' }); }
+        };
+        function darMuat(file, k) {
+            return new Promise((res, rej) => {
+                if (!file) return rej(new Error('Tidak ada file.'));
+                if (file.size > 8 * 1024 * 1024) return rej(new Error('Ukuran gambar maksimal 8 MB.'));
+                const fr = new FileReader();
+                fr.onerror = () => rej(new Error('File tidak bisa dibaca.'));
+                fr.onload = () => res(String(fr.result));
+                fr.readAsDataURL(file);
+            });
+        }
+        function darOlah(orig, trans) {
+            return new Promise((res, rej) => {
+                const im = new Image();
+                im.onerror = () => rej(new Error('Gambar tidak bisa dibuka. Gunakan file JPG atau PNG.'));
+                im.onload = () => {
+                    const mx = 700, sc = Math.min(1, mx / Math.max(im.naturalWidth, im.naturalHeight));
+                    const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc));
+                    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+                    const c = cv.getContext('2d'); c.drawImage(im, 0, 0, w, h);
+                    if (trans) {
+                        const d = c.getImageData(0, 0, w, h), a = d.data;
+                        for (let i = 0; i < a.length; i += 4) {
+                            const m = Math.min(a[i], a[i + 1], a[i + 2]);
+                            if (m >= 238) a[i + 3] = 0; else if (m > 195) a[i + 3] = Math.round(255 * (238 - m) / 43);
+                        }
+                        c.putImageData(d, 0, 0);
+                        res({ src: cv.toDataURL('image/png'), r: h / w });
+                    } else res({ src: cv.toDataURL('image/jpeg', 0.92), r: h / w });
+                };
+                im.src = orig;
+            });
+        }
+        async function darPasangGambar(k, file) {
+            try {
+                darPesan('Memproses gambar...');
+                const orig = await darMuat(file, k), o = await darOlah(orig, DAR.trans);
+                const def = DAR_DEF[k];
+                DAR[k] = { orig, src: o.src, r: o.r, dx: def.dx, dy: def.dy, w: def.w };
+                DAR.sel = k; darPesan(''); darSentuh();
+            } catch (e) { darPesan(e.message || 'Gagal memuat gambar.'); }
+        }
+        async function darUlangTrans() {
+            for (const k of ['ttd', 'cap']) if (DAR[k]) { try { const o = await darOlah(DAR[k].orig, DAR.trans); DAR[k].src = o.src; } catch (e) {} }
+            darSentuh();
+        }
+        function darKartu() {
+            const box = darEl('darObjs'); if (!box) return;
+            const nm = { ttd: 'Tanda tangan', cap: 'Cap sekolah' };
+            box.innerHTML = ['ttd', 'cap'].map(k => {
+                const o = DAR[k];
+                if (!o) return `<div class="dar-obj-card"><b>${nm[k]}</b><div class="dar-note" style="margin:4px 0 0">Belum ada gambar. Pilih file di atas.</div></div>`;
+                return `<div class="dar-obj-card ${DAR.sel === k ? 'on' : ''}" data-dsel="${k}"><b>${nm[k]}</b> <span class="dar-note">lebar ${o.w.toFixed(0)} mm</span>
+                    <div class="dar-row"><input type="range" min="8" max="90" step="1" value="${Math.round(o.w)}" data-dw="${k}" style="flex:1 1 140px;min-width:120px" aria-label="Ukuran ${nm[k]}"><button type="button" class="dar-b" data-dsz="${k}:-2" aria-label="Perkecil">&minus;</button><button type="button" class="dar-b" data-dsz="${k}:2" aria-label="Perbesar">+</button></div>
+                    <div class="dar-row"><button type="button" class="dar-b" data-dmv="${k}:-1:0" aria-label="Geser kiri">&#9664;</button><button type="button" class="dar-b" data-dmv="${k}:0:-1" aria-label="Geser atas">&#9650;</button><button type="button" class="dar-b" data-dmv="${k}:0:1" aria-label="Geser bawah">&#9660;</button><button type="button" class="dar-b" data-dmv="${k}:1:0" aria-label="Geser kanan">&#9654;</button><button type="button" class="dar-b dar-red" data-ddel="${k}">Hapus gambar</button></div></div>`;
+            }).join('');
+        }
+        function darPlaceOverlays() {
+            const box = darEl('pdfPages'); if (!box) return;
+            box.querySelectorAll('.dar-ov').forEach(n => n.remove());
+            const sg = pdfRec.sig; if (!sg || !DAR.on) return;
+            const wrap = box.children[sg.pg - 1]; if (!wrap) return;
+            const cv = wrap.querySelector('canvas'); if (!cv) return;
+            wrap.style.position = 'relative';
+            ['cap', 'ttd'].forEach(k => {
+                const o = DAR[k]; if (!o) return;
+                const g = darGeom(k, sg.x, sg.y), el = document.createElement('div');
+                el.className = 'dar-ov' + (DAR.sel === k ? ' sel' : ''); el.dataset.k = k;
+                el.style.cssText = `left:${g.x * pdfScale}px;top:${cv.offsetTop + g.y * pdfScale}px;width:${g.w * pdfScale}px;`;
+                el.innerHTML = `<span class="dar-tag">${k === 'ttd' ? 'Tanda tangan' : 'Cap'}</span><img src="${o.src}" alt=""><span class="dar-h" data-h="1"></span>`;
+                wrap.appendChild(el);
+            });
+        }
+        // geser & ubah ukuran dengan jari/mouse (Pointer Events)
+        (function () {
+            let drag = null;
+            document.addEventListener('pointerdown', e => {
+                const ov = e.target.closest && e.target.closest('.dar-ov'); if (!ov) return;
+                const k = ov.dataset.k, o = DAR[k]; if (!o) return;
+                e.preventDefault(); DAR.sel = k;
+                drag = { k, resize: !!e.target.closest('[data-h]'), x: e.clientX, y: e.clientY, dx: o.dx, dy: o.dy, w: o.w, id: e.pointerId, ov };
+                try { ov.setPointerCapture(e.pointerId); } catch (x) {}
+                document.querySelectorAll('.dar-ov').forEach(n => n.classList.toggle('sel', n === ov));
+            });
+            document.addEventListener('pointermove', e => {
+                if (!drag || e.pointerId !== drag.id) return;
+                const o = DAR[drag.k], dmx = (e.clientX - drag.x) / pdfScale, dmy = (e.clientY - drag.y) / pdfScale;
+                if (drag.resize) o.w = drag.w + dmx; else { o.dx = drag.dx + dmx; o.dy = drag.dy + dmy; }
+                darKlem(drag.k);
+                const sg = pdfRec.sig, g = darGeom(drag.k, sg.x, sg.y), el = drag.ov;
+                el.style.left = (g.x * pdfScale) + 'px'; el.style.width = (g.w * pdfScale) + 'px';
+                const cv = el.parentNode.querySelector('canvas'); el.style.top = (cv.offsetTop + g.y * pdfScale) + 'px';
+            });
+            const akhir = e => { if (!drag || (e && e.pointerId !== drag.id)) return; drag = null; darHitungOn(); DAR.dirty = true; darSegarkanCetak(); darKartu(); };
+            document.addEventListener('pointerup', akhir); document.addEventListener('pointercancel', akhir);
+        })();
+        window.darHapusSemua = function () {
+            DAR.nama = ''; DAR.nip = ''; DAR.ttd = null; DAR.cap = null; DAR.on = false;
+            darEl('darNama').value = ''; darEl('darNip').value = ''; darEl('darFileTtd').value = ''; darEl('darFileCap').value = '';
+            darBangunUlangPdf(); darSegarkanCetak(); darGambarUlangHalaman(); darKartu(); darPesan('Semua isian darurat dihapus.');
+        };
+        function darPasang() {
+            darEl('darNama').addEventListener('input', e => { DAR.nama = e.target.value; darSentuhTeks(); });
+            darEl('darNip').addEventListener('input', e => { DAR.nip = e.target.value; darSentuhTeks(); });
+            darEl('darFileTtd').addEventListener('change', e => { if (e.target.files[0]) darPasangGambar('ttd', e.target.files[0]); });
+            darEl('darFileCap').addEventListener('change', e => { if (e.target.files[0]) darPasangGambar('cap', e.target.files[0]); });
+            darEl('darTrans').addEventListener('change', e => { DAR.trans = e.target.checked; darUlangTrans(); });
+            darEl('darPanel').addEventListener('click', e => {
+                const t = e.target.closest('button'); if (!t) { const c = e.target.closest('[data-dsel]'); if (c) { DAR.sel = c.dataset.dsel; darPlaceOverlays(); darKartu(); } return; }
+                if (t.dataset.dmv) { const [k, mx, my] = t.dataset.dmv.split(':'); const o = DAR[k]; if (!o) return; o.dx += Number(mx); o.dy += Number(my); DAR.sel = k; darKlem(k); darSentuh(); }
+                else if (t.dataset.dsz) { const [k, d] = t.dataset.dsz.split(':'); const o = DAR[k]; if (!o) return; o.w += Number(d); DAR.sel = k; darKlem(k); darSentuh(); }
+                else if (t.dataset.ddel) { DAR[t.dataset.ddel] = null; darEl(t.dataset.ddel === 'ttd' ? 'darFileTtd' : 'darFileCap').value = ''; darSentuh(); }
+            });
+            darEl('darPanel').addEventListener('input', e => {
+                const k = e.target.dataset && e.target.dataset.dw; if (!k) return; const o = DAR[k]; if (!o) return;
+                o.w = Number(e.target.value); DAR.sel = k; darKlem(k); darHitungOn(); DAR.dirty = true; darSegarkanCetak(); darPlaceOverlays();
+                const lb = e.target.closest('.dar-obj-card').querySelector('.dar-note'); if (lb) lb.textContent = 'lebar ' + o.w.toFixed(0) + ' mm';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', darPasang);
+
         // Pratinjau: menggambar ulang setiap halaman PDF (dari data tata letak yang sama) ke kanvas,
         // sehingga SELURUH halaman terlihat dan skalanya pas dengan lebar layar.
         let pdfPageCount = 0;
@@ -2245,7 +2479,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const box = document.getElementById('pdfPages');
             if (!box || !pdfPageCount) return;
             const avail = Math.max(240, box.clientWidth - 24);
-            const cssW = Math.min(avail, 1180), scale = cssW / 297, cssH = 210 * scale;
+            const cssW = Math.min(avail, 1180), scale = cssW / 297, cssH = 210 * scale; pdfScale = scale;
             const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
             box.innerHTML = '';
             for (let pg = 1; pg <= pdfPageCount; pg++) {
@@ -2285,6 +2519,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 });
             }
+            darPlaceOverlays();
         }
         let pdfResizeTimer = null;
         window.addEventListener('resize', () => {
@@ -2295,6 +2530,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
         async function openPdfPreview(printData, meta) {
             if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF tidak termuat');
+            if (DAR.sekolah !== meta.sekolah) { DAR.nama = ''; DAR.nip = ''; DAR.ttd = null; DAR.cap = null; DAR.on = false; DAR.sekolah = meta.sekolah; DAR.dirty = false; ['darNama', 'darNip', 'darFileTtd', 'darFileCap'].forEach(i => { const e = darEl(i); if (e) e.value = ''; }); }
+            lastPrint = { data: printData, meta };
             const doc = buildPdfDoc(printData, meta);
             pdfBlob = doc.output('blob');
             if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -2307,6 +2544,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const f = new File([pdfBlob], meta.fileName + '.pdf', { type: 'application/pdf' });
                 if (navigator.canShare && navigator.canShare({ files: [f] })) { share.classList.remove('hidden'); share.classList.add('flex'); }
             } catch (e) { /* tidak didukung */ }
+            const admin = (typeof TIM !== 'undefined') && TIM && TIM.admin; darEl('darBtn').style.display = admin ? '' : 'none'; darEl('darPanel').style.display = 'none';
             const pv = document.getElementById('pdfPreview');
             pv.classList.remove('hidden'); pv.classList.add('flex');
             pdfPageCount = doc.internal.getNumberOfPages();
@@ -2318,12 +2556,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             document.getElementById('pdfPages').innerHTML = '';
         };
         window.savePdfToDevice = function () {
+            if (DAR.dirty) darBangunUlangPdf();
             if (!pdfBlob) return;
             const a = document.createElement('a');
             a.href = pdfUrl; a.download = pendingPrintName + '.pdf';
             document.body.appendChild(a); a.click(); a.remove();
         };
         window.sharePdf = async function () {
+            if (DAR.dirty) darBangunUlangPdf();
             if (!pdfBlob) return;
             try {
                 const f = new File([pdfBlob], pendingPrintName + '.pdf', { type: 'application/pdf' });
@@ -2332,6 +2572,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         };
         // Cetak lewat dialog browser (data diambil dari area cetak HTML); nama file = judul halaman
         window.printFromPreview = function () {
+            darSegarkanCetak();
             const originalTitle = document.title;
             document.title = pendingPrintName || originalTitle;
             const restore = () => { document.title = originalTitle; window.removeEventListener('afterprint', restore); };
