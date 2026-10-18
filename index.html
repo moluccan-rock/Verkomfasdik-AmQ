@@ -551,10 +551,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* Tinggi area yang benar-benar terlihat (iPad/Safari/Edge: 100vh lebih tinggi dari layar). Diisi ulang oleh JS (setAppHeight). */
         :root { --app-h: 100vh; }
         @supports (height: 100dvh) { :root { --app-h: 100dvh; } }
-        html, body { height: auto; min-height: var(--app-h); overflow-x: hidden; }
+        html { overflow-x: hidden; }
+        body { height: auto; min-height: var(--app-h); overflow-x: clip; }
         /* Halaman menggulir NORMAL (bukan area terkunci): dasar halaman selalu bisa dicapai, ada ruang & area aman di bawah. */
         main { min-width: 0; padding-bottom: calc(2rem + env(safe-area-inset-bottom)) !important; }
-        #sidebarPanel { height: var(--app-h); max-height: var(--app-h); }
+        /* Panel filter: SELALU tetap di tempat (fixed) sehingga tidak ikut menggulir; bisa disembunyikan/ditampilkan di semua perangkat.
+           >=1024px: panel mendorong konten (mode tersemat). <1024px: panel melayang di atas konten dengan latar gelap. */
+        #sidebarPanel { position: fixed; top: 0; left: 0; height: var(--app-h); max-height: var(--app-h); overscroll-behavior: contain; }
+        #sidebarBackdrop { display: none; }
+        #sidebarBackdrop.on { display: block; }
+        main { transition: margin-left .3s cubic-bezier(.4,0,.2,1); }
+        body.no-anim main, body.no-anim #sidebarPanel { transition: none !important; }
+        @media (min-width: 1024px) { body.sb-open main { margin-left: 20rem; } #sidebarBackdrop, #sidebarBackdrop.on { display: none !important; } }
+        #sidebarPanel[inert] { visibility: hidden; transition: transform .3s cubic-bezier(.4,0,.2,1), visibility 0s linear .3s; }
         .sidebar-footer { flex-shrink: 0; padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
         @media (max-height: 760px) { .sidebar-footer .pdf-help { display: none; } .sidebar-footer { padding-top: .75rem; gap: .5rem; } }
         /* Tinggi kartu grafik mengikuti tinggi layar, dengan batas bawah/atas. Kanvas melayang sehingga tidak mendorong kartu. */
@@ -570,7 +579,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         .admform{display:grid;grid-template-columns:1fr;gap:8px}@media(min-width:720px){.admform{grid-template-columns:1.4fr 1fr auto}}.admform input{width:100%;min-width:0}
 </style>
 </head>
-<body class="w-full flex flex-col md:flex-row relative">
+<body class="w-full flex flex-col relative">
 <div id="gateTim" role="dialog" aria-modal="true" aria-labelledby="gateJudul">
     <form class="gate-box" id="gateForm" autocomplete="off">
         <h1 id="gateJudul">e-SIM Verkom Fasdik PKH Kota Ambon</h1>
@@ -599,9 +608,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </div>
 
 
-    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
+    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity"></div>
 
-    <aside id="sidebarPanel" class="no-print fixed md:sticky md:top-0 md:self-start inset-y-0 left-0 z-40 w-80 max-w-[85vw] flex-shrink-0 glass-panel flex flex-col transform -translate-x-full md:translate-x-0 sidebar-transition">
+    <aside id="sidebarPanel" aria-label="Panel filter" class="no-print fixed inset-y-0 left-0 z-40 w-80 max-w-[85vw] flex-shrink-0 glass-panel flex flex-col transform -translate-x-full sidebar-transition">
         <div class="p-5 border-b border-slate-200/50 dark:border-white/10 flex items-center justify-between bg-white/30 dark:bg-white/5">
             <div class="flex items-center gap-3 min-w-0">
                 <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-pink-500 text-white flex items-center justify-center text-lg shadow-lg shadow-indigo-500/30 flex-shrink-0">
@@ -613,7 +622,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <p id="appVersionLabel" class="text-[9px] text-slate-500 dark:text-gray-400 mt-0.5"></p>
                 </div>
             </div>
-            <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white p-2 text-sm"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <button type="button" onclick="toggleSidebar()" class="sb-toggle text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white p-2 text-sm" aria-label="Sembunyikan panel filter" title="Sembunyikan panel filter"><i class="fa-solid fa-angles-left text-lg"></i></button>
         </div>
 
         <div class="p-5 flex-1 min-h-0 overflow-y-auto space-y-4">
@@ -686,7 +695,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <header class="mb-4 shrink-0 flex flex-col gap-4">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 xl:gap-4">
                 <div class="flex items-center gap-3.5 min-w-0 w-full xl:w-auto">
-                    <button onclick="toggleSidebar()" class="md:hidden glass-card p-3 rounded-2xl text-slate-700 dark:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition flex items-center justify-center flex-shrink-0">
+                    <button type="button" id="btnSidebar" aria-controls="sidebarPanel" aria-expanded="false" aria-label="Tampilkan atau sembunyikan panel filter" title="Panel filter" onclick="toggleSidebar()" class="sb-toggle glass-card p-3 rounded-2xl text-slate-700 dark:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition flex items-center justify-center flex-shrink-0">
                         <i class="fa-solid fa-bars text-base"></i>
                     </button>
                     <div class="min-w-0 flex-1">
@@ -950,7 +959,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 18;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 19;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1402,21 +1411,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (icon) icon.className = isDark ? 'fa-solid fa-sun text-yellow-300 text-lg' : 'fa-solid fa-moon text-slate-700 text-lg';
         }
 
-        window.toggleSidebar = function () {
-            const panel = document.getElementById('sidebarPanel');
-            const backdrop = document.getElementById('sidebarBackdrop');
-            if (panel.classList.contains('-translate-x-full')) {
-                panel.classList.remove('-translate-x-full');
-                backdrop.classList.remove('hidden');
-            } else {
-                panel.classList.add('-translate-x-full');
-                backdrop.classList.add('hidden');
-            }
-        };
+        // ===== Panel filter (sidebar): tetap di tempat, bisa disembunyikan/ditampilkan di semua perangkat =====
+        const SB_MQ = 1024;
+        function sbBuka() { return document.body.classList.contains('sb-open'); }
+        function sbTerapkan(buka, animasi, simpan) {
+            const b = document.body, p = document.getElementById('sidebarPanel'), bd = document.getElementById('sidebarBackdrop');
+            if (!animasi) b.classList.add('no-anim');
+            b.classList.toggle('sb-open', buka);
+            p.classList.toggle('-translate-x-full', !buka);
+            if (buka) p.removeAttribute('inert'); else p.setAttribute('inert', '');
+            bd.classList.toggle('on', buka && window.innerWidth < SB_MQ);
+            const t = document.getElementById('btnSidebar'); if (t) t.setAttribute('aria-expanded', buka ? 'true' : 'false');
+            if (!animasi) requestAnimationFrame(() => requestAnimationFrame(() => b.classList.remove('no-anim')));
+            if (simpan && window.innerWidth >= SB_MQ) { try { localStorage.setItem('sb_pref', buka ? 'open' : 'closed'); } catch (e) {} }
+        }
+        window.toggleSidebar = function () { sbTerapkan(!sbBuka(), true, true); };
+        function sbAwal() {
+            let pref = ''; try { pref = localStorage.getItem('sb_pref') || ''; } catch (e) {}
+            sbTerapkan(window.innerWidth >= SB_MQ && pref !== 'closed', false, false);
+        }
+        let sbModeBesar = window.innerWidth >= SB_MQ;
+        window.addEventListener('resize', () => {
+            const besar = window.innerWidth >= SB_MQ;
+            if (besar !== sbModeBesar) { sbModeBesar = besar; sbAwal(); }
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && sbBuka() && window.innerWidth < SB_MQ) toggleSidebar(); });
+        sbAwal();
 
         function closeSidebarOnMobile() {
-            const panel = document.getElementById('sidebarPanel');
-            if (!panel.classList.contains('-translate-x-full') && window.innerWidth < 768) toggleSidebar();
+            if (sbBuka() && window.innerWidth < SB_MQ) toggleSidebar();
         }
 
         window.openUploadForm = function () {
