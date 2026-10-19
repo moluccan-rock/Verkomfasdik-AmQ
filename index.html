@@ -614,6 +614,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         .abs-sum { flex: 1 1 200px; font-size: 11.5px; color: #cbd5e1; line-height: 1.5; } .abs-sum b { color: #fff; } .abs-sum .bad { color: #fca5a5; }
         .abs-row { display: grid; grid-template-columns: minmax(0, 1.4fr) auto 70px auto; gap: 8px 10px; align-items: center; padding: 8px 10px; border: 1px solid #334155; border-radius: 10px; margin-top: 6px; background: #0f172a; }
         .abs-row.er { border-color: #ef4444; background: rgba(239,68,68,.12); }
+        .abs-row.low { border: 2px solid #ef4444; padding: 7px 9px; background: rgba(239,68,68,.16); box-shadow: inset 0 3px 14px rgba(239,68,68,.30), inset 0 0 0 1px rgba(239,68,68,.25); }
+        .abs-row.low .abs-st, .abs-row.er .abs-st { border-color: #ef4444; box-shadow: inset 0 2px 7px rgba(239,68,68,.38); }
+        .abs-row.low .abs-pc { color: #fca5a5; } .abs-pc .lw { color: #fca5a5; font-weight: 700; }
         .abs-row.lk .abs-flds { opacity: .45; filter: grayscale(1); }
         .abs-nm { min-width: 0; } .abs-nm b { font-size: 12.5px; word-break: break-word; display: block; } .abs-nm small { color: #94a3b8; font-size: 10.5px; }
         .abs-kn { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.35; color: #cbd5e1; } .abs-kn[hidden] { display: none; }
@@ -1022,7 +1025,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         </div>
         <div id="absPanel" class="dar-panel abs-panel" style="display:none">
             <div class="dar-head"><b><i class="fa-solid fa-pen-to-square"></i> Isi Absen Darurat <span class="dar-badge">khusus admin</span></b><button type="button" class="dar-x" onclick="absToggle()" aria-label="Tutup panel">Tutup panel</button></div>
-            <p class="dar-note">Isian hanya diproses di perangkat ini dan <b>tidak disimpan atau dikirim ke server</b>. Dokumen yang memakai isian ini diberi tanda <b>*</b> kecil di samping tahun pada kop. Rumus sama seperti halaman sekolah: hadir = hari efektif &minus; (sakit + izin + alpha); persen = hadir &divide; hari efektif.</p>
+            <p class="dar-note">Isian hanya diproses di perangkat ini dan <b>tidak disimpan atau dikirim ke server</b>. Dokumen yang memakai isian ini diberi tanda <b>*</b> kecil di samping tahun pada kop. Baris bertepi <b style="color:#fca5a5">merah</b> = kehadiran di bawah 85% atau siswa berstatus lulus/pindah/bukan siswa/tidak bersekolah (kecuali sudah naik jenjang); barisnya juga diarsir merah di dokumen. Rumus sama seperti halaman sekolah: hadir = hari efektif &minus; (sakit + izin + alpha); persen = hadir &divide; hari efektif.</p>
             <div class="abs-top">
                 <label>Kegiatan efektif (hari)<input id="absEfektif" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="mis. 20"></label>
                 <div id="absRingkas" class="abs-sum" aria-live="polite"></div>
@@ -1057,7 +1060,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 24;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 25;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -2251,7 +2254,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             const rows = printData.map((r, i) => [
                 String(i + 1), pdfText(r.namaPengurus), pdfText(r.nisn), pdfText(r.namaSiswa),
-                pdfText(kelasAngka(r.tingkatPendidikan)), ...(c => [c.efektif, c.sakit, c.izin, c.alpha, c.persen].map(pdfText))(absCells(r, i)), pdfText(r.pendamping), pdfText(absCells(r, i).ket)
+                pdfText(kelasAngka(r.tingkatPendidikan)), ...(c => [c.efektif, c.sakit, c.izin, c.alpha, c.persen].map(pdfText))(absCells(r, i)), pdfText(r.pendamping), { content: pdfText(absCells(r, i).ket), merah: !!absCells(r, i).merah }
             ]);
             const head = [[
                 { content: 'NO', rowSpan: 2 }, { content: 'NAMA PENGURUS', rowSpan: 2 }, { content: 'NISN', rowSpan: 2 },
@@ -2297,6 +2300,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.6, textColor: 0, lineColor: 0, lineWidth: 0.2, valign: 'middle', overflow: 'linebreak' },
                     headStyles: { fillColor: [21, 58, 112], textColor: 255, halign: 'center', valign: 'middle', fontStyle: 'bold', fontSize: 7.5, cellPadding: 1 },
                     columnStyles,
+                    didParseCell: d => {
+                        if (d.section !== 'body') return;
+                        const raw = d.row.raw;
+                        if (Array.isArray(raw) && raw[11] && raw[11].merah) {   // di bawah 85% atau lulus/pindah/dll (kecuali naik jenjang): baris diarsir merah seperti di halaman sekolah
+                            d.cell.styles.fillColor = [254, 202, 202];
+                            if (d.column.index === 9 || d.column.index === 11) { d.cell.styles.textColor = [153, 0, 0]; d.cell.styles.fontStyle = 'bold'; }
+                        }
+                    },
                     didDrawCell: d => {
                         if (record) {
                             const st = d.cell.styles, fc = st.fillColor;
@@ -2380,6 +2391,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const ABS_URUT = ['LULUS', 'BUKAN', 'BERHENTI', 'PINDAH', 'NAIK', 'LAIN'];
         const ABS_KUNCI = ['LULUS', 'BUKAN', 'BERHENTI', 'PINDAH'];   // sakit/izin/alpha terkunci
         const ABS_SURAT = ['LULUS', 'BERHENTI'];                      // perlu surat keterangan kolektif
+        const ABS_BATAS = 85;
         const ABS_PESAN_SURAT = 'Untuk siswa lulus dan putus sekolah, mohon berikan surat keterangan kolektif dari sekolah untuk penanganan lebih lanjut.';
         let absTimer = null;
         const absKey = (r, i) => (String(r.nisn || '').trim() || ('#' + i));
@@ -2394,30 +2406,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const salah = !kunci && e > 0 && tidak > e, hadir = e - tidak;
             const persen = (!kunci && e > 0 && !salah) ? Math.round(hadir * 1000 / e) / 10 : null;
             const ket = ABS_URUT.filter(k => L.includes(k)).map(k => k === 'LAIN' ? (v.catatan ? 'Lainnya: ' + v.catatan : 'Lainnya') : ABS_KET[k]).join(', ');
-            return { v, L, e, kunci, surat, tidak, salah, hadir, persen, ket };
+            const naik = L.includes('NAIK'), adaStatus = L.some(k => ABS_KUNCI.includes(k));
+            const rendah = !naik && !salah && persen !== null && persen < ABS_BATAS;      // di bawah 85% (kecuali sudah naik jenjang)
+            const merah = rendah || (!naik && adaStatus);                                   // atau berstatus lulus/pindah/bukan siswa/tidak bersekolah
+            return { v, L, e, kunci, surat, tidak, salah, hadir, persen, ket, naik, rendah, merah };
         }
         const absPersenTeks = p => String(p).replace('.', ',') + '%';
         // isi sel tabel dokumen untuk satu siswa
         function absCells(r, i) {
-            const kosong = { efektif: '', sakit: '', izin: '', alpha: '', persen: '', ket: '' };
+            const kosong = { efektif: '', sakit: '', izin: '', alpha: '', persen: '', ket: '', merah: false };
             if (!absAktif()) return kosong;
             const k = absKey(r, i), a = absInfo(k);
-            if (a.kunci) return { efektif: '', sakit: '-', izin: '-', alpha: '-', persen: '-', ket: a.ket };
-            if (a.e > 0) return { efektif: String(a.e), sakit: String(absNum(a.v.sakit)), izin: String(absNum(a.v.izin)), alpha: String(absNum(a.v.alpha)), persen: a.persen === null ? '-' : absPersenTeks(a.persen), ket: a.ket };
-            return Object.assign(kosong, { ket: a.ket });
+            if (a.kunci) return { efektif: '', sakit: '-', izin: '-', alpha: '-', persen: '-', ket: a.ket, merah: a.merah };
+            if (a.e > 0) return { efektif: String(a.e), sakit: String(absNum(a.v.sakit)), izin: String(absNum(a.v.izin)), alpha: String(absNum(a.v.alpha)), persen: a.persen === null ? '-' : absPersenTeks(a.persen), ket: a.ket, merah: a.merah };
+            return Object.assign(kosong, { ket: a.ket, merah: a.merah });
         }
         function printRowsHtmlFor(printData) {
-            const td = v => `<td style="text-align:center;">${esc(v)}</td>`;
-            return printData.map((r, i) => { const c = absCells(r, i); return `
-                <tr>
-                    <td style="text-align:center;">${i + 1}</td>
-                    <td>${esc(r.namaPengurus)}</td>
-                    <td style="text-align:center;">${esc(r.nisn)}</td>
-                    <td>${esc(r.namaSiswa)}</td>
-                    <td style="text-align:center;">${esc(kelasAngka(r.tingkatPendidikan))}</td>
-                    ${td(c.efektif)}${td(c.sakit)}${td(c.izin)}${td(c.alpha)}${td(c.persen)}
-                    <td>${esc(r.pendamping)}</td>
-                    <td>${esc(c.ket)}</td>
+            return printData.map((r, i) => { const c = absCells(r, i);
+                const bg = c.merah ? 'background:#fecaca;-webkit-print-color-adjust:exact;print-color-adjust:exact;' : '', tm = c.merah ? 'color:#990000;font-weight:bold;' : '';
+                const td = (v, t) => `<td style="text-align:center;${bg}${t ? tm : ''}">${esc(v)}</td>`;
+                return `
+                <tr${c.merah ? ' class="abs-red"' : ''}>
+                    ${td(i + 1)}
+                    <td style="${bg}">${esc(r.namaPengurus)}</td>
+                    ${td(r.nisn)}
+                    <td style="${bg}">${esc(r.namaSiswa)}</td>
+                    ${td(kelasAngka(r.tingkatPendidikan))}
+                    ${td(c.efektif)}${td(c.sakit)}${td(c.izin)}${td(c.alpha)}${td(c.persen, 1)}
+                    <td style="${bg}">${esc(r.pendamping)}</td>
+                    <td style="${bg}${tm}">${esc(c.ket)}</td>
                 </tr>`; }).join('');
         }
         function absKop() {
@@ -2449,9 +2466,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (a.kunci) ['sakit', 'izin', 'alpha'].forEach(f => { v[f] = ''; });
             ['sakit', 'izin', 'alpha'].forEach(f => { const i = row.querySelector('input[data-f="' + f + '"]'); if (i && document.activeElement !== i) i.value = v[f] || ''; if (i) i.disabled = a.kunci; });
             row.querySelectorAll('.abs-st button').forEach(b => { b.disabled = a.kunci; });
-            row.classList.toggle('lk', a.kunci); row.classList.toggle('er', a.salah);
+            row.classList.toggle('lk', a.kunci); row.classList.toggle('er', a.salah); row.classList.toggle('low', a.merah);
             const pc = row.querySelector('[data-pc]');
-            pc.innerHTML = a.kunci ? '-<small>tidak dihitung</small>' : (a.e <= 0 ? '-<small>isi hari efektif</small>' : (a.salah ? 'Salah<small>melebihi hari efektif</small>' : absPersenTeks(a.persen) + '<small>hadir ' + a.hadir + '</small>'));
+            pc.innerHTML = a.kunci ? '-<small>tidak dihitung</small>' : (a.e <= 0 ? '-<small>isi hari efektif</small>' : (a.salah ? 'Salah<small>melebihi hari efektif</small>' : absPersenTeks(a.persen) + '<small>hadir ' + a.hadir + '</small>' + (a.rendah ? '<small class="lw">di bawah ' + ABS_BATAS + '%</small>' : '')));
             const kn = row.querySelector('.abs-kn'); kn.hidden = !(a.kunci || a.surat);
             kn.innerHTML = (a.kunci ? '&#128274; Absensi terkunci, tidak perlu diisi.' : '') + (a.surat ? '<span class="ks">' + ABS_PESAN_SURAT + '</span>' : '');
             row.querySelectorAll('input[data-ks]').forEach(cb => { cb.checked = a.L.includes(cb.value); });
@@ -2461,9 +2478,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         function absRingkas() {
             const box = darEl('absRingkas'); if (!box || !lastPrint) return;
-            let kunci = 0, salah = 0, tot = 0, isi = 0; const e = absNum(ABS.efektif);
-            lastPrint.data.forEach((r, i) => { const a = absInfo(absKey(r, i)); if (a.kunci) kunci++; else if (a.salah) salah++; else if (a.persen !== null) { tot += a.persen; isi++; } });
-            box.innerHTML = 'Siswa: <b>' + lastPrint.data.length + '</b> · Rata-rata kehadiran: <b>' + (isi ? absPersenTeks(Math.round(tot / isi * 10) / 10) : '-') + '</b>' + (kunci ? ' · Terkunci: <b>' + kunci + '</b>' : '') + (salah ? '<br><span class="bad">Baris salah: <b>' + salah + '</b> (sakit+izin+alpha melebihi hari efektif; persen dicetak "-")</span>' : '') + (e ? '' : '<br>Isi hari efektif dulu agar persen terhitung.');
+            let kunci = 0, salah = 0, tot = 0, isi = 0, merah = 0; const e = absNum(ABS.efektif);
+            lastPrint.data.forEach((r, i) => { const a = absInfo(absKey(r, i)); if (a.merah) merah++; if (a.kunci) kunci++; else if (a.salah) salah++; else if (a.persen !== null) { tot += a.persen; isi++; } });
+            box.innerHTML = 'Siswa: <b>' + lastPrint.data.length + '</b> · Rata-rata kehadiran: <b>' + (isi ? absPersenTeks(Math.round(tot / isi * 10) / 10) : '-') + '</b>' + (kunci ? ' · Terkunci: <b>' + kunci + '</b>' : '') + (merah ? ' · <span class="bad">Bertanda merah: <b>' + merah + '</b></span>' : '') + (salah ? '<br><span class="bad">Baris salah: <b>' + salah + '</b> (sakit+izin+alpha melebihi hari efektif; persen dicetak "-")</span>' : '') + (e ? '' : '<br>Isi hari efektif dulu agar persen terhitung.');
         }
         function absSegarSemua() { document.querySelectorAll('#absList .abs-row').forEach(absSegarBaris); absRingkas(); }
         window.absToggle = function () {
