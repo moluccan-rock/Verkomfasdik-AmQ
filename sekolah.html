@@ -620,7 +620,7 @@ input,select{scroll-margin:130px 0 150px}
 // =============================== KONFIGURASI ===============================
 // Isi dengan "Web app URL" (berakhiran /exec) dari Apps Script. Ini satu-satunya yang perlu diubah.
 const API_URL = 'https://script.google.com/macros/s/AKfycbyzXnU-rzCTBm2yqxfIoRBUjS8uunFDNxkKrqhoRIbVu5NyFHBcSXf4pcO6Ygmj3jx39A/exec';
-const APP_BUILD = 8;                 // naik 1 setiap file baru diunggah ke GitHub
+const APP_BUILD = 9;                 // naik 1 setiap file baru diunggah ke GitHub
 const FETCH_TIMEOUT_MS = 30000, UPLOAD_TIMEOUT_MS = 180000, MAKS_PDF_BYTE = 6 * 1024 * 1024;
 const BULAN = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 const ROMAWI = ['I','II','III','IV'];
@@ -945,6 +945,7 @@ async function simpan(tanpaKonfirmasi) {
 }
 
 // =============================== PDF ===============================
+const PDF_BATAS = 499000;   // batas ukuran file PDF (byte): di bawah 499 KB
 let pdfRec = { pages: {} }, pdfBlob = null, pdfUrl = '', pdfNama = '', pdfPageCount = 0;
 function pdfText(v) {
   return String(v == null ? '' : v).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/ /g, ' ')
@@ -960,7 +961,7 @@ function buildPdfDoc(rowsData, meta) {
   const rop = (pg, op) => { (pdfRec.pages[pg] = pdfRec.pages[pg] || []).push(op); };
   const { jsPDF } = window.jspdf;
   const PW = 297, PH = 210, ML = 12, MR = 12, MT = 10, MB = 10, SIG_H = 50, GAP = 4;
-  const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const newDoc = () => new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
   const rows = rowsData.map((r, i) => {
     const tampil = !r.ex || r.ada;   // siswa berketerangan tanpa angka absen: strip (-)
     const ketTeks = [r.rendah ? 'TIDAK KOMITMEN' : '', r.ket || '', r.catatan || ''].filter(Boolean).join(' - ');
@@ -975,12 +976,24 @@ function buildPdfDoc(rowsData, meta) {
   // lebar total 273 mm = A4 landscape (297) dikurangi margin kiri-kanan 12 mm
   const columnStyles = { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 34 }, 2: { cellWidth: 24, halign: 'center' }, 3: { cellWidth: 45 }, 4: { cellWidth: 12, halign: 'center' },
     5: { cellWidth: 17, halign: 'center' }, 6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' }, 8: { cellWidth: 12, halign: 'center' }, 9: { cellWidth: 20, halign: 'center' }, 10: { cellWidth: 33 }, 11: { cellWidth: 44 } };
-  const imgOf = id => { const im = $(id); return { src: im.src, w: im.naturalWidth, h: im.naturalHeight, fmt: /image\/png/.test(im.src) ? 'PNG' : 'JPEG' }; };
+  const logoCache = {};
+  // logo untuk PDF dikecilkan ke sekitar 300 dpi pada tinggi 19 mm (tampilan tetap tajam, ukuran file jauh lebih kecil)
+  const imgOf = id => {
+    if (logoCache[id]) return logoCache[id];
+    const im = $(id), nw = im.naturalWidth, nh = im.naturalHeight;
+    let r = { src: im.src, w: nw, h: nh, fmt: /image\/png/.test(im.src) ? 'PNG' : 'JPEG' };
+    try {
+      const th = Math.min(nh, 230), tw = Math.max(1, Math.round(nw * th / nh)), cv = document.createElement('canvas'); cv.width = tw; cv.height = th;
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, tw, th); c.drawImage(im, 0, 0, tw, th);
+      const u = cv.toDataURL('image/jpeg', 0.9); if (u.length < im.src.length) r = { src: u, w: tw, h: th, fmt: 'JPEG' };
+    } catch (e) { /* pakai gambar asli */ }
+    return logoCache[id] = r;
+  };
   function drawKop(doc) {
     const LH = 19, y0 = MT, k = imgOf('logoKemensos'), p = imgOf('logoPKH');
-    doc.addImage(k.src, k.fmt, ML, y0, LH * k.w / k.h, LH); rop(1, { t: 'img', id: 'logoKemensos', x: ML, y: y0, w: LH * k.w / k.h, h: LH });
+    doc.addImage(k.src, k.fmt, ML, y0, LH * k.w / k.h, LH, undefined, 'FAST'); rop(1, { t: 'img', id: 'logoKemensos', x: ML, y: y0, w: LH * k.w / k.h, h: LH });
     const pw = LH * p.w / p.h;
-    doc.addImage(p.src, p.fmt, PW - MR - pw, y0, pw, LH); rop(1, { t: 'img', id: 'logoPKH', x: PW - MR - pw, y: y0, w: pw, h: LH });
+    doc.addImage(p.src, p.fmt, PW - MR - pw, y0, pw, LH, undefined, 'FAST'); rop(1, { t: 'img', id: 'logoPKH', x: PW - MR - pw, y: y0, w: pw, h: LH });
     doc.setTextColor(0).setFont('helvetica', 'bold');
     const lines = [['KEMENTERIAN SOSIAL', 11], ['DAFTAR KEHADIRAN SISWA KELUARGA PENERIMA MANFAAT (KPM)', 12.5], ['PROGRAM KELUARGA HARAPAN', 11], [pdfText(meta.kop || meta.sekolah), 11], ['BULAN ' + meta.bulan + ' TAHUN ' + meta.tahun, 11]];
     let y = y0 + 3.2;
@@ -1085,7 +1098,7 @@ async function bukaPdf(pra) {
     const doc = buildPdfDoc(data, meta);
     pdfBlob = doc.output('blob'); if (pdfUrl) URL.revokeObjectURL(pdfUrl); pdfUrl = URL.createObjectURL(pdfBlob);
     pdfPageCount = doc.internal.getNumberOfPages();
-    $('pvName').textContent = pdfNama + '.pdf'; $('pvInfo').textContent = data.length + ' siswa · ' + pdfPageCount + ' halaman';
+    $('pvName').textContent = pdfNama + '.pdf'; $('pvInfo').textContent = data.length + ' siswa · ' + pdfPageCount + ' halaman · ' + Math.round(pdfBlob.size / 1024) + ' KB' + (pdfBlob.size > PDF_BATAS ? ' (MELEBIHI batas 499 KB)' : '');
     try { const f = new File([pdfBlob], pdfNama + '.pdf', { type: 'application/pdf' }); $('pvShare').classList.toggle('hide', !(navigator.canShare && navigator.canShare({ files: [f] }))); } catch (x) { $('pvShare').classList.add('hide'); }
     modeBukaPdf(pra);
     $('pdfPreview').classList.add('on'); renderPdfPages();
