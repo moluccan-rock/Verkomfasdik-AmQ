@@ -492,10 +492,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
         /* ===== Gerbang login tim ===== */
         #gateTim { position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; padding:20px; background:var(--bg); overflow:auto; }
-        #gateTim::before, #gateTim::after { content:""; position:fixed; z-index:-1; border-radius:50%; filter:blur(55px); opacity:var(--blob); pointer-events:none; }
-        #gateTim::before { width:min(46vmax,560px); height:min(46vmax,560px); left:-8vmax; top:-7vmax; background:var(--bl1); z-index:0; }
-        #gateTim::after { width:min(54vmax,640px); height:min(54vmax,640px); right:-10vmax; bottom:-12vmax; background:var(--bl2); z-index:0; }
-        #gateTim .gate-box { position:relative; z-index:1; }
+        /* slideshow warna tema + bokeh di belakang kartu masuk */
+        #gateTim .sc { position:absolute; inset:0; z-index:0; background:#F7F3EC; }
+        .dark #gateTim .sc { background:#0E1320; }
+        #gateTim .sc i { position:absolute; inset:-10%; opacity:0; transition:opacity 2.8s ease-in-out; background:radial-gradient(70% 80% at 18% 12%,var(--c2),transparent 62%),radial-gradient(80% 90% at 85% 95%,var(--c1),transparent 65%),linear-gradient(135deg,var(--c1),var(--c2)); }
+        #gateTim .sc i.on { opacity:1; animation:scm 14s ease-in-out infinite alternate; }
+        @keyframes scm { from { transform:scale(1) translate(0,0); } to { transform:scale(1.12) translate(-2%,1.5%); } }
+        #gateTim #bk { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+        @media (prefers-reduced-motion: reduce) { #gateTim .sc i.on { animation:none; } }
+        #gateTim .gate-box { position:relative; z-index:1; background:rgba(255,255,255,.86); }
+        .dark #gateTim .gate-box { background:rgba(14,19,32,.78); }
         #gateTim.on { display:flex; }
         .gate-box { width:100%; max-width:420px; border-radius:24px; padding:26px 22px; background:var(--glass); -webkit-backdrop-filter:blur(var(--blur)) saturate(1.2); backdrop-filter:blur(var(--blur)) saturate(1.2); border:1px solid var(--gline); color:var(--ink); box-shadow:var(--sh); }
         .gate-box h1 { font-size:20px; font-weight:800; line-height:1.25; margin:0 0 4px; }
@@ -674,6 +680,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </head>
 <body class="w-full flex flex-col relative">
 <div id="gateTim" role="dialog" aria-modal="true" aria-labelledby="gateJudul">
+    <div class="sc" id="scs" aria-hidden="true"><i style="--c1:#2B5BA8;--c2:#8FB4EE"></i><i style="--c1:#1F6E7E;--c2:#7FCFD9"></i><i style="--c1:#8A5A3A;--c2:#E3BC98"></i><i style="--c1:#4B4FA3;--c2:#A9B4F0"></i></div><canvas id="bk" aria-hidden="true"></canvas>
     <form class="gate-box" id="gateForm" autocomplete="off">
         <h1 id="gateJudul">e-SIM Verkom Fasdik PKH Kota Ambon</h1>
         <p class="sub">Dashboard khusus tim. Masuk dengan kode tim Anda.</p>
@@ -1080,7 +1087,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 28;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 29;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1270,14 +1277,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             throw new Error('Tidak dapat terhubung ke server. Periksa internet lalu coba lagi.');
         }
 
+        // =================== LATAR GERBANG: SLIDESHOW WARNA + BOKEH ===================
+        const FX = { on: false, ci: -1, tw: null, raf: 0, P: [], W: 0, H: 0, last: 0 };
+        function fxHex(h, a) { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')'; }
+        function fxWarna() { const sc = document.querySelectorAll('#scs i'); if (!sc.length) return; if (FX.ci >= 0) sc[FX.ci].classList.remove('on'); FX.ci = (FX.ci + 1) % sc.length; sc[FX.ci].classList.add('on'); }
+        function fxMulai() {
+            if (FX.on) return; FX.on = true;
+            const cv = stEl('bk'), gate = stEl('gateTim'), cx = cv.getContext('2d'), dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const PAL = ['#ffffff', '#fde7c8', '#cfe0ff', '#f2c9a0', '#bfeaf2', '#ffd9e6'];
+            const mk = l => { const r = l === 0 ? [2, 5] : l === 1 ? [4, 9] : [9, 16]; return { x: Math.random() * FX.W, y: Math.random() * FX.H, r: r[0] + Math.random() * (r[1] - r[0]), sp: (l + 1) * (4 + Math.random() * 7), dx: (Math.random() - .5) * 8, ph: Math.random() * 6.28, tw: .5 + Math.random() * 1.3, c: PAL[Math.floor(Math.random() * PAL.length)], a: l === 0 ? .6 : l === 1 ? .5 : .34 }; };
+            const ukur = () => { FX.W = gate.clientWidth; FX.H = gate.clientHeight; cv.width = FX.W * dpr; cv.height = FX.H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+            ukur(); const n = FX.W < 700 ? 110 : 170; FX.P = []; for (let i = 0; i < n; i++) FX.P.push(mk(i % 3));
+            FX.rs = ukur; window.addEventListener('resize', FX.rs);
+            fxWarna(); FX.tw = setInterval(fxWarna, 8000); FX.last = performance.now();
+            const gambar = now => {
+                if (!FX.on) return; const dt = Math.min((now - FX.last) / 1000, .05); FX.last = now;
+                const gelap = document.documentElement.classList.contains('dark');
+                cx.clearRect(0, 0, FX.W, FX.H); cx.globalCompositeOperation = gelap ? 'lighter' : 'source-over';
+                for (const p of FX.P) {
+                    if (!rm) { p.y -= p.sp * dt; p.x += p.dx * dt; p.ph += dt * p.tw; }
+                    if (p.y < -30) { p.y = FX.H + 30; p.x = Math.random() * FX.W; } if (p.x < -30) p.x = FX.W + 30; if (p.x > FX.W + 30) p.x = -30;
+                    const al = p.a * (.65 + .35 * Math.sin(p.ph)) * (gelap ? 1 : .9), g = cx.createRadialGradient(p.x, p.y, p.r * .15, p.x, p.y, p.r);
+                    g.addColorStop(0, fxHex(p.c, al * .8)); g.addColorStop(.8, fxHex(p.c, al * .9)); g.addColorStop(.94, fxHex(p.c, al)); g.addColorStop(1, fxHex(p.c, 0));
+                    cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.2832); cx.fill();
+                }
+                FX.raf = requestAnimationFrame(gambar);
+            };
+            FX.raf = requestAnimationFrame(gambar);
+        }
+        function fxBerhenti() { FX.on = false; cancelAnimationFrame(FX.raf); clearInterval(FX.tw); window.removeEventListener('resize', FX.rs); }
+
         // =================== GERBANG LOGIN ===================
         function gerbangTampil(pesan) {
-            stEl('gateTim').classList.add('on'); document.body.style.overflow = 'hidden';
+            stEl('gateTim').classList.add('on'); document.body.style.overflow = 'hidden'; fxMulai();
             stEl('gateNama').value = stEl('gateNama').value || lsBaca('tim_nama');
             const m = stEl('gatePesan'); m.textContent = pesan || ''; m.classList.toggle('on', !!pesan);
             setTimeout(() => { try { stEl(stEl('gateKode').value ? 'gateNama' : 'gateKode').focus(); } catch (e) {} }, 100);
         }
-        function gerbangTutup() { stEl('gateTim').classList.remove('on'); document.body.style.overflow = ''; }
+        function gerbangTutup() { stEl('gateTim').classList.remove('on'); document.body.style.overflow = ''; fxBerhenti(); }
         function gerbangProfil(r) {
             TIM.nama = r.nama || ''; TIM.kelompok = r.kelompok || 'Tim'; TIM.cakupan = r.cakupan || ''; TIM.admin = !!r.admin;
             stEl('chipNama').textContent = TIM.nama || 'Tim'; stEl('chipKel').textContent = TIM.kelompok + (TIM.cakupan ? '' : ' · semua kecamatan');
