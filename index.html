@@ -528,7 +528,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         #admModal .gate-box { max-width:480px; }
         #admModal table { width:100%; font-size:12.5px; border-collapse:collapse; } #admModal td, #admModal th { padding:6px 4px; border-bottom:1px solid var(--gline); text-align:left; vertical-align:top; word-break:break-word; }
         #admModal .row2 { display:flex; gap:8px; } #admModal .row2 button { margin-top:14px; }
-        #admModal button.alt { background:transparent; border:1px solid var(--gline); }
+        #admModal button.alt, .gate-box button.alt { background:transparent; border:1px solid var(--gline); color:var(--ink); box-shadow:none; }
+        #admModal td button { width:auto; min-height:36px; margin:0; padding:6px 10px; font-size:12px; border-radius:10px; }
         .stx .dev { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed rgba(100,116,139,.35); font-size:13px; flex-wrap:wrap; }
         .stx .dev button { min-height:38px; padding:6px 12px; border-radius:10px; border:1px solid #dc2626; background:transparent; color:#dc2626; font-weight:700; font-size:12px; cursor:pointer; }
         /* ===== Status Sekolah ===== */
@@ -700,6 +701,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div id="admMForm">
             <label for="admMKode">Ketik kode admin Anda untuk melanjutkan</label>
             <input id="admMKode" type="password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Kode admin">
+            <div id="admMKonfBox" style="display:none"><label for="admMKonf">Ketik <b>RESET SEMUA</b> untuk mengonfirmasi</label>
+            <input id="admMKonf" type="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="RESET SEMUA"></div>
         </div>
         <div id="admMHasil"></div>
         <div class="msg" id="admMErr" role="alert"></div>
@@ -914,6 +917,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <button type="button" class="sbtn" id="admMuat"><i class="fa-solid fa-rotate"></i> Muat ulang</button>
                     <button type="button" class="sbtn alt" id="admSemuaTim"><i class="fa-solid fa-key"></i> Lihat semua kode tim</button>
                     <button type="button" class="sbtn alt" id="admSemuaSek"><i class="fa-solid fa-school"></i> Lihat semua PIN sekolah</button>
+                    <button type="button" class="sbtn sm red" id="admResetSek"><i class="fa-solid fa-arrows-rotate"></i> Buat ulang SEMUA PIN sekolah</button>
                 </div>
                 <div id="admPesan"></div>
             </div>
@@ -1087,7 +1091,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 29;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 30;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1440,7 +1444,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         // --- jendela konfirmasi kode admin ---
         function admModalBuka(judul, pesan, aksi) {
             ADM.aksi = aksi; ADM.setelah = null;
-            stEl('admMJudul').textContent = judul; stEl('admMPesan').textContent = pesan; stEl('admMKode').value = '';
+            stEl('admMJudul').textContent = judul; stEl('admMPesan').textContent = pesan; stEl('admMKode').value = ''; stEl('admMKonf').value = ''; stEl('admMKonfBox').style.display = ADM.butuhKonf ? '' : 'none'; ADM.butuhKonf = false;
             stEl('admMForm').style.display = ''; stEl('admMHasil').innerHTML = ''; stEl('admMErr').classList.remove('on');
             stEl('admMOk').style.display = ''; stEl('admMOk').disabled = false; stEl('admMOk').textContent = 'Lanjut'; stEl('admMBatal').textContent = 'Batal';
             stEl('admModal').classList.add('on'); setTimeout(() => stEl('admMKode').focus(), 80);
@@ -1450,7 +1454,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const kode = stEl('admMKode').value.trim(); if (!kode) { stEl('admMErr').textContent = 'Ketik kode admin Anda.'; stEl('admMErr').classList.add('on'); return; }
             const b = stEl('admMOk'); b.disabled = true; b.textContent = 'Memeriksa...'; stEl('admMErr').classList.remove('on');
             try {
-                const hasil = await ADM.aksi(kode);   // { html, setelah } atau { galat }
+                const hasil = await ADM.aksi(kode, stEl('admMKonf').value.trim());   // { html, setelah } atau { galat }
                 if (hasil.galat) { stEl('admMErr').textContent = hasil.galat; stEl('admMErr').classList.add('on'); b.disabled = false; b.textContent = 'Lanjut'; return; }
                 stEl('admMForm').style.display = 'none'; stEl('admMHasil').innerHTML = hasil.html; stEl('admMOk').style.display = 'none'; stEl('admMBatal').textContent = 'Tutup';
                 ADM.setelah = hasil.setelah || null; stEl('admMPesan').textContent = hasil.pesan || '';
@@ -1502,6 +1506,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return { html: `<div style="max-height:46vh;overflow:auto"><table><tr><th>ID</th><th>Nama</th><th>${jenis === 'tim' ? 'Kode' : 'PIN'}</th></tr>${tbl}</table></div><div class="row2"><button type="button" data-salin-semua="1">Salin daftar</button><button type="button" data-csv-semua="1">Unduh CSV</button></div><p class="note">${jenis === 'sekolah' ? 'Sekolah bertanda (lama) memakai PIN lama yang tidak bisa dilihat. Gunakan PIN baru bila perlu.' : ''} Simpan file ini di tempat aman dan hapus setelah dibagikan.</p>` };
             });
         }
+        function admResetSemua() {
+            ADM.butuhKonf = true;
+            admModalBuka('Buat ulang SEMUA PIN sekolah', 'PIN lama semua sekolah langsung tidak berlaku dan sekolah yang sedang masuk akan keluar. Data absensi tidak berubah. Lakukan hanya saat Anda siap membagikan PIN baru ke semua sekolah.', async (kodeAdmin, konfirmasi) => {
+                if (konfirmasi.toUpperCase() !== 'RESET SEMUA') return { galat: 'Ketik RESET SEMUA pada kotak konfirmasi.' };
+                const r = await admApi({ aksi: 'adminResetSemua', kodeAdmin, konfirmasi });
+                if (!r.ok) return { galat: r.pesan || 'Gagal.' };
+                const alamat = new URL('sekolah.html', location.href).href.replace(/index\.html$/, '');
+                const pesan = x => 'Halo Bapak/Ibu, berikut akses absensi ' + x.nama + ':\nKode sekolah: ' + x.id + '\nPIN: ' + x.kode + '\nAlamat: ' + alamat + '\nPIN bersifat rahasia, jangan dibagikan ke pihak lain.';
+                ADM.salinSemua = r.daftar.map(x => x.nama + ' (' + x.id + '): ' + x.kode).join('\n');
+                ADM.csv = [['KODE', 'NAMA', 'KECAMATAN', 'PIN']].concat(r.daftar.map(x => [x.id, x.nama, x.kecamatan || '', x.kode]));
+                ADM.csvNama = 'PIN_BARU_SEKOLAH.csv';
+                const tbl = r.daftar.map(x => `<tr><td>${stEsc(x.id)}</td><td>${stEsc(x.nama)}${x.aktif ? '' : ' <b>(nonaktif)</b>'}</td><td><b>${stEsc(x.kode)}</b></td><td><button type="button" class="sbtn sm alt" data-salin="${stEsc(pesan(x))}">Salin pesan</button></td></tr>`).join('');
+                return { html: `<p class="note"><b>${r.jumlah} sekolah</b> sudah mendapat PIN baru. PIN lama tidak berlaku lagi.</p><div style="max-height:46vh;overflow:auto"><table><tr><th>Kode</th><th>Nama</th><th>PIN</th><th></th></tr>${tbl}</table></div><div class="row2"><button type="button" data-salin-semua="1">Salin daftar</button><button type="button" data-csv-semua="1">Unduh CSV</button></div><p class="note">Daftar ini juga ada di tab DISTRIBUSI_PIN. Simpan di tempat aman, bagikan ke tiap sekolah, lalu hapus tab itu.</p>`, pesan: 'Selesai', setelah: () => admMuat() };
+            });
+        }
         function salinTeks(t) {
             if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).catch(() => salinLama(t));
             return Promise.resolve(salinLama(t));
@@ -1511,6 +1530,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stEl('admMuat').addEventListener('click', admMuat);
             stEl('admSemuaTim').addEventListener('click', () => admSemua('tim'));
             stEl('admSemuaSek').addEventListener('click', () => admSemua('sekolah'));
+            stEl('admResetSek').addEventListener('click', admResetSemua);
             stEl('admCari').addEventListener('input', admGambarSekolah);
             stEl('admEditorForm').addEventListener('submit', async e => {
                 e.preventDefault();
@@ -1522,6 +1542,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stEl('admMOk').addEventListener('click', admModalOk);
             stEl('admMBatal').addEventListener('click', admModalTutup);
             stEl('admMKode').addEventListener('keydown', e => { if (e.key === 'Enter') admModalOk(); });
+            stEl('admMKonf').addEventListener('keydown', e => { if (e.key === 'Enter') admModalOk(); });
         }
         document.addEventListener('DOMContentLoaded', admPasang);
         document.addEventListener('click', async e => {
