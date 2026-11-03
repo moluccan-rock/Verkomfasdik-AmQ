@@ -822,7 +822,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <i class="fa-solid fa-spinner fa-spin"></i> Memuat Data...
                     </div>
                     <button type="button" onclick="document.getElementById('csvFileInput').click()" class="px-4 py-2.5 rounded-2xl glass-card bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 text-slate-700 dark:text-white text-xs font-bold flex items-center gap-2 shadow-lg border-white/50 dark:border-white/15 transition duration-300" title="Muat data dari file CSV"><i class="fa-solid fa-file-csv"></i> CSV</button>
-                    <button type="button" id="btnMaster" onclick="bukaMaster()" title="Buka Google Sheet data master (hanya untuk akun email yang disetujui admin)" class="px-4 py-2.5 rounded-2xl glass-card bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 text-slate-700 dark:text-white text-xs font-bold flex items-center gap-2 shadow-lg border-white/50 dark:border-white/15 transition"><i class="fa-solid fa-table"></i> Data Master</button>
+                    <button type="button" id="btnMaster" onclick="bukaTautan('urlMaster','btnMaster','Data Master')" title="Buka Google Sheet data master (hanya untuk akun email yang disetujui admin)" class="px-4 py-2.5 rounded-2xl glass-card bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 text-slate-700 dark:text-white text-xs font-bold flex items-center gap-2 shadow-lg border-white/50 dark:border-white/15 transition"><i class="fa-solid fa-table"></i> Data Master</button>
+                    <button type="button" id="btnFolder" onclick="bukaTautan('urlFolderBukti','btnFolder','Folder Bukti')" title="Buka folder bukti absen di Google Drive: lihat, unduh, atau hapus (hanya untuk akun email yang disetujui admin)" class="px-4 py-2.5 rounded-2xl glass-card bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 text-slate-700 dark:text-white text-xs font-bold flex items-center gap-2 shadow-lg border-white/50 dark:border-white/15 transition"><i class="fa-solid fa-folder-open"></i> Folder Bukti</button>
                     <button onclick="fetchSheetData()" class="px-4 py-2.5 rounded-2xl glass-card bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 text-slate-700 dark:text-white text-xs font-bold flex items-center gap-2 shadow-lg border-white/50 dark:border-white/15 transition duration-300 group" title="Sinkronkan Ulang">
                         <i class="fa-solid fa-rotate group-hover:rotate-180 transition duration-500"></i> Sinkron
                     </button>
@@ -1102,7 +1103,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 38;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 39;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1401,15 +1402,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stMuat();
         }
         // Tombol "Data Master": alamat diminta dari server (tidak tertanam di halaman). Akses akhir ditentukan Google.
-        async function bukaMaster() {
+        async function bukaTautan(aksi, idTombol, judul) {
             if (!TIM.token) return;
-            const b = stEl('btnMaster'), lama = b.innerHTML; b.disabled = true;
+            const b = stEl(idTombol), lama = b.innerHTML; b.disabled = true;
             const w = window.open('', '_blank');   // dibuka saat diketuk agar tidak diblokir Safari
             try {
-                const r = await stApi({ aksi: 'urlMaster', token: TIM.token });
-                if (!r.ok) { if (w) w.close(); if (r.error === 'sesi') gerbangKeluar('Sesi berakhir. Masukkan kode tim lagi.'); else showModal('Data Master', r.pesan || 'Gagal membuka data master.', 'warning'); return; }
+                const r = await stApi({ aksi, token: TIM.token });
+                if (!r.ok) { if (w) w.close(); if (r.error === 'sesi') gerbangKeluar('Sesi berakhir. Masukkan kode tim lagi.'); else showModal(judul, r.pesan || 'Gagal membuka.', 'warning'); return; }
                 if (w) { w.opener = null; w.location.href = r.url; } else { window.location.href = r.url; }
-            } catch (e) { if (w) w.close(); showModal('Data Master', e.message || 'Gagal membuka data master.', 'warning'); }
+            } catch (e) { if (w) w.close(); showModal(judul, e.message || 'Gagal membuka.', 'warning'); }
             finally { b.disabled = false; b.innerHTML = lama; }
         }
         async function stMuat() {
