@@ -1100,7 +1100,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 35;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 36;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -2074,6 +2074,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     tingkatPendidikan: pick(clean, ['TINGKAT PENDIDIKAN']) || '-',
                     pendamping: normText(pick(clean, ['NAMA PENDAMPING'])) || 'PENDAMPING PKH',
                     npsn: (() => { const k = Object.keys(clean).find(x => x === 'NPSN') || Object.keys(clean).find(x => x.indexOf('NPSN') >= 0); const v = k ? String(clean[k]).trim().replace(/\.0+$/, '') : ''; return /^[0-9A-Za-z]{4,20}$/.test(v) ? v : ''; })(),
+                    adaPjKolom: Object.keys(clean).some(x => x.indexOf('PENANGGUNG JAWAB') >= 0),
                     pj: (() => { const k = keys.find(x => x.indexOf('PENANGGUNG JAWAB') >= 0); const v = k ? normText(clean[k]) : ''; return v && v !== '-' ? v : ''; })(),
                     kecamatan,
                     periodePenyaluran: normPeriode(pick(clean, ['PERIODE PENYALURAN', 'TAHAP', 'PERIODE']))
@@ -2142,8 +2143,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (r.pj) pjSet.add(r.pj); else pjKosong = true;
                 }
             });
-            const pjKeep = elFilterPj.value;
+            const pjKeep = elFilterPj.value, pjKolom = rawData.some(r => r.adaPjKolom);
             fillSelect(elFilterPj, 'Semua Penanggung Jawab', Array.from(pjSet).sort(), pjKeep);
+            if (!pjKolom) {
+                const o = document.createElement('option'); o.value = 'ALL'; o.disabled = true; o.textContent = '⚠ Kolom penanggung jawab belum diterima dari server (perbarui Kode.gs)';
+                elFilterPj.appendChild(o);
+            }
             if (pjKosong) {
                 const o = document.createElement('option'); o.value = '-'; o.textContent = 'Belum Ada';
                 elFilterPj.appendChild(o);
