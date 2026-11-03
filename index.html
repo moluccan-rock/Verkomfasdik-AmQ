@@ -925,10 +925,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div class="flex flex-wrap gap-2">
                     <button type="button" class="sbtn" id="admMuat"><i class="fa-solid fa-rotate"></i> Muat ulang</button>
                     <button type="button" class="sbtn alt" id="admSemuaTim"><i class="fa-solid fa-key"></i> Lihat semua kode tim</button>
+                    <button type="button" class="sbtn alt" id="admRiwayatTombol"><i class="fa-solid fa-clock-rotate-left"></i> Lihat riwayat aktivitas tim</button>
                     <button type="button" class="sbtn alt" id="admSemuaSek"><i class="fa-solid fa-school"></i> Lihat semua PIN sekolah</button>
                     <button type="button" class="sbtn sm red" id="admResetSek"><i class="fa-solid fa-arrows-rotate"></i> Buat ulang SEMUA PIN sekolah</button>
                 </div>
                 <div id="admPesan"></div>
+                <div id="admRiwayat" class="hidden mt-3"></div>
             </div>
             <div class="mt-4"><h4 class="text-xs font-bold uppercase tracking-wide mb-2 mut">Kode tim</h4><div id="admDaftar"></div></div>
             <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl mt-4" id="admEditorKartu">
@@ -1100,7 +1102,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 36;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 38;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1426,7 +1428,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             } catch (e) { stPesan(e.message); } finally { b.disabled = false; b.innerHTML = lama; }
         }
         // =================== ADMIN ===================
-        const ADM = { sekolah: [], aksi: null, setelah: null };
+        const ADM = { kode: [], sekolah: [], aksi: null, setelah: null };
         function admErr(t) { stEl('admPesan').innerHTML = t ? '<div class="err">' + stEsc(t) + '</div>' : ''; }
         async function admApi(req) {
             const r = await stApi(Object.assign({ token: TIM.token }, req));
@@ -1440,15 +1442,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const [r, rs, re] = await Promise.all([admApi({ aksi: 'adminDaftar' }), admApi({ aksi: 'adminSekolah' }), admApi({ aksi: 'adminEditorDaftar' })]);
                 if (!r.ok) { admErr(r.pesan || 'Gagal memuat.'); return; }
                 stEl('admDaftar').innerHTML = r.kode.map(k => {
-                    const dev = k.perangkat.map(d => `<div class="dev"><div><b>${stEsc(d.nama || '(tanpa nama)')}</b><div class="mut" style="font-size:11.5px">daftar ${stEsc(d.daftar)} · terakhir masuk ${stEsc(d.terakhir)}</div></div><button type="button" data-lepas="${stEsc(k.id)}" data-pid="${stEsc(d.pid)}" data-nama="${stEsc(d.nama)}">Lepas</button></div>`).join('') || '<div class="dev mut">Belum ada perangkat terdaftar.</div>';
+                    const _lama = k.perangkat.map(d => `<div class="dev"><div><b>${stEsc(d.nama || '(tanpa nama)')}</b><div class="mut" style="font-size:11.5px">daftar ${stEsc(d.daftar)} · terakhir masuk ${stEsc(d.terakhir)}</div></div><button type="button" data-lepas="${stEsc(k.id)}" data-pid="${stEsc(d.pid)}" data-nama="${stEsc(d.nama)}">Lepas</button></div>`).join('') || '<div class="dev mut">Belum ada perangkat terdaftar.</div>';
                     const st = !k.adaKode ? '<span class="badge r">Belum ada kode</span>' : (k.aktif ? '<span class="badge g">Aktif</span>' : '<span class="badge y">Nonaktif</span>');
                     const aks = (k.admin ? '' : `<button type="button" class="sbtn sm ${k.aktif ? 'red' : ''}" data-adm="aktif" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}" data-set="${k.aktif ? '0' : '1'}">${k.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>`);
                     return `<div class="row" style="grid-template-columns:1fr"><div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><div class="nm">${stEsc(k.kelompok)}${k.admin ? ' (admin)' : ''}</div><div class="mt mut">ID ${stEsc(k.id)} · cakupan ${stEsc(k.cakupan)} · perangkat ${k.perangkat.length}/${k.maks}</div></div>${st}</div>
-                        <div class="admrow" style="border-top:0;padding-bottom:4px"><div class="btns"><button type="button" class="sbtn sm" data-adm="lihat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}">Lihat kode</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}" data-admin="${k.admin ? '1' : ''}">Buat kode baru</button>${aks}</div></div>${dev}</div></div>`;
+                        <div class="admrow" style="border-top:0;padding-bottom:4px"><div class="btns"><button type="button" class="sbtn sm" data-adm="lihat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}">Lihat kode</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="tim" data-id="${stEsc(k.id)}" data-nama="${stEsc(k.kelompok)}" data-admin="${k.admin ? '1' : ''}">Buat kode baru</button>${aks}${k.admin ? `<button type="button" class="sbtn sm alt" data-lepas="${stEsc(k.id)}" data-pid="" data-nama="semua perangkat admin">Lepas semua perangkat</button>` : ''}</div></div></div></div>`;
                 }).join('');
+                ADM.kode = r.kode; admGambarRiwayat();
                 if (rs && rs.ok) { ADM.sekolah = rs.sekolah; admGambarSekolah(); }
                 admGambarEditor(re);
             } catch (e) { admErr(e.message); } finally { b.disabled = false; }
+        }
+        // Riwayat aktivitas seluruh tim (kode non-admin): siapa yang masuk, kapan daftar, kapan terakhir masuk
+        function admWaktu(v) { const d = new Date(v); return isNaN(d) ? String(v || '-') : d.toLocaleString('id-ID', { timeZone: 'Asia/Jayapura', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIT'; }
+        function admGambarRiwayat() {
+            const el = stEl('admRiwayat'); if (!el || el.classList.contains('hidden')) return;
+            const baris = [];
+            (ADM.kode || []).filter(k => !k.admin).forEach(k => k.perangkat.forEach(d => baris.push({ k, d, t: new Date(d.terakhir).getTime() || 0 })));
+            baris.sort((a, b) => b.t - a.t);
+            el.innerHTML = '<div class="mut text-xs font-bold mb-1">RIWAYAT AKTIVITAS TIM (' + baris.length + ' perangkat, terbaru di atas)</div>' + (baris.length ? baris.map(({ k, d }) =>
+                `<div class="dev"><div><b>${stEsc(d.nama || '(tanpa nama)')}</b> <span class="mut" style="font-size:11.5px">· ${stEsc(k.kelompok)}</span><div class="mut" style="font-size:11.5px">terakhir masuk ${stEsc(admWaktu(d.terakhir))} · daftar ${stEsc(admWaktu(d.daftar))}</div></div><button type="button" data-lepas="${stEsc(k.id)}" data-pid="${stEsc(d.pid)}" data-nama="${stEsc(d.nama)}">Lepas</button></div>`).join('') : '<div class="dev mut">Belum ada aktivitas tim.</div>');
         }
         function admGambarEditor(r) {
             const st = stEl('admMasterStatus'), ls = stEl('admEditorDaftar');
@@ -1555,6 +1568,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         function admPasang() {
             stEl('admMuat').addEventListener('click', admMuat);
             stEl('admSemuaTim').addEventListener('click', () => admSemua('tim'));
+            stEl('admRiwayatTombol').addEventListener('click', () => { const el = stEl('admRiwayat'); el.classList.toggle('hidden'); stEl('admRiwayatTombol').innerHTML = el.classList.contains('hidden') ? '<i class="fa-solid fa-clock-rotate-left"></i> Lihat riwayat aktivitas tim' : '<i class="fa-solid fa-eye-slash"></i> Sembunyikan riwayat tim'; admGambarRiwayat(); });
             stEl('admSemuaSek').addEventListener('click', () => admSemua('sekolah'));
             stEl('admResetSek').addEventListener('click', admResetSemua);
             stEl('admCari').addEventListener('input', admGambarSekolah);
@@ -2074,8 +2088,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     tingkatPendidikan: pick(clean, ['TINGKAT PENDIDIKAN']) || '-',
                     pendamping: normText(pick(clean, ['NAMA PENDAMPING'])) || 'PENDAMPING PKH',
                     npsn: (() => { const k = Object.keys(clean).find(x => x === 'NPSN') || Object.keys(clean).find(x => x.indexOf('NPSN') >= 0); const v = k ? String(clean[k]).trim().replace(/\.0+$/, '') : ''; return /^[0-9A-Za-z]{4,20}$/.test(v) ? v : ''; })(),
-                    adaPjKolom: Object.keys(clean).some(x => x.indexOf('PENANGGUNG JAWAB') >= 0),
-                    pj: (() => { const k = keys.find(x => x.indexOf('PENANGGUNG JAWAB') >= 0); const v = k ? normText(clean[k]) : ''; return v && v !== '-' ? v : ''; })(),
+                    adaPjKolom: Object.keys(clean).some(x => /PENANG+UNG *JAWAB|JAWAB ABSEN/.test(x)),
+                    pj: (() => { const k = keys.find(x => /PENANG+UNG *JAWAB|JAWAB ABSEN/.test(x)); const v = k ? normText(clean[k]) : ''; return v && v !== '-' ? v : ''; })(),
                     kecamatan,
                     periodePenyaluran: normPeriode(pick(clean, ['PERIODE PENYALURAN', 'TAHAP', 'PERIODE']))
                 };
