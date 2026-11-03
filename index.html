@@ -769,6 +769,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </select>
             </div>
             <div>
+                <label class="block text-[11px] font-medium mb-1.5 text-slate-600 dark:text-gray-300">Penanggung Jawab Absen Sekolah</label>
+                <select id="filterPj" class="w-full rounded-xl glass-input p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                    <option value="ALL">Semua Penanggung Jawab</option>
+                </select>
+            </div>
+            <div>
                 <label class="block text-[11px] font-medium mb-1.5 text-slate-600 dark:text-gray-300">Bulan Cetak Laporan</label>
                 <select id="filterBulan" class="w-full rounded-xl glass-input p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition">
                     <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
@@ -1093,7 +1099,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 33;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 34;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1120,6 +1126,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const elFilterKecamatan = document.getElementById('filterKecamatan');
         const elFilterSekolah = document.getElementById('filterSekolah');
         const elFilterPendamping = document.getElementById('filterPendamping');
+        const elFilterPj = document.getElementById('filterPj');
         const elFilterPeriode = document.getElementById('filterPeriode');
         const elFilterBulan = document.getElementById('filterBulan');
         const elSearchInput = document.getElementById('searchInput');
@@ -1190,6 +1197,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             elFilterKecamatan.addEventListener('change', () => { updateCascadingFilters(); updateDashboard(); });
             elFilterSekolah.addEventListener('change', () => { updateCascadingFilters(); updateDashboard(); });
             elFilterPendamping.addEventListener('change', updateDashboard);
+            elFilterPj.addEventListener('change', updateDashboard);
             elFilterBulan.addEventListener('change', updatePdfNamePreview);
             elSearchInput.addEventListener('input', () => {
                 clearTimeout(searchTimer);
@@ -2053,6 +2061,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     tingkatPendidikan: pick(clean, ['TINGKAT PENDIDIKAN']) || '-',
                     pendamping: normText(pick(clean, ['NAMA PENDAMPING'])) || 'PENDAMPING PKH',
                     npsn: (() => { const k = Object.keys(clean).find(x => x === 'NPSN') || Object.keys(clean).find(x => x.indexOf('NPSN') >= 0); const v = k ? String(clean[k]).trim().replace(/\.0+$/, '') : ''; return /^[0-9A-Za-z]{4,20}$/.test(v) ? v : ''; })(),
+                    pj: (() => { const k = keys.find(x => x.indexOf('PENANGGUNG JAWAB') >= 0); const v = k ? normText(clean[k]) : ''; return v && v !== '-' ? v : ''; })(),
                     kecamatan,
                     periodePenyaluran: normPeriode(pick(clean, ['PERIODE PENYALURAN', 'TAHAP', 'PERIODE']))
                 };
@@ -2112,18 +2121,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if ((vKec === 'ALL' || r.kecamatan === vKec) && (vSek === 'ALL' || r.sekolah === vSek) && (vPer === 'ALL' || r.periodePenyaluran === vPer) && r.pendamping) pendampingSet.add(r.pendamping);
             });
             fillSelect(elFilterPendamping, 'Semua Pendamping', Array.from(pendampingSet).sort(), elFilterPendamping.value);
+
+            // Penanggung jawab absen sekolah (kolom R): nama yang ada bisa dipilih, baris kosong = "Belum Ada"
+            const pjSet = new Set(); let pjKosong = false;
+            rawData.forEach(r => {
+                if ((vKec === 'ALL' || r.kecamatan === vKec) && (vSek === 'ALL' || r.sekolah === vSek) && (vPer === 'ALL' || r.periodePenyaluran === vPer)) {
+                    if (r.pj) pjSet.add(r.pj); else pjKosong = true;
+                }
+            });
+            const pjKeep = elFilterPj.value;
+            fillSelect(elFilterPj, 'Semua Penanggung Jawab', Array.from(pjSet).sort(), pjKeep);
+            if (pjKosong) {
+                const o = document.createElement('option'); o.value = '-'; o.textContent = 'Belum Ada';
+                elFilterPj.appendChild(o);
+                if (pjKeep === '-') elFilterPj.value = '-';
+            }
         }
 
         function updateDashboard() {
             const vKec = elFilterKecamatan.value;
             const vSek = elFilterSekolah.value;
             const vPen = elFilterPendamping.value;
+            const vPj = elFilterPj.value;
             const vPer = elFilterPeriode.value;
 
             filteredData = rawData.filter(r =>
                 (vKec === 'ALL' || r.kecamatan === vKec) &&
                 (vSek === 'ALL' || r.sekolah === vSek) &&
                 (vPen === 'ALL' || r.pendamping === vPen) &&
+                (vPj === 'ALL' || (vPj === '-' ? !r.pj : r.pj === vPj)) &&
                 (vPer === 'ALL' || r.periodePenyaluran === vPer));
 
             updateScorecards();
@@ -2201,6 +2227,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const bagian = [];
             if (elFilterSekolah.value !== 'ALL') bagian.push(elFilterSekolah.value);
             else if (elFilterPendamping.value !== 'ALL') bagian.push('PENDAMPING ' + elFilterPendamping.value);
+            else if (elFilterPj.value !== 'ALL') bagian.push('PJ ' + (elFilterPj.value === '-' ? 'BELUM ADA' : elFilterPj.value));
             else if (elFilterKecamatan.value !== 'ALL') bagian.push(elFilterKecamatan.value);
             else bagian.push('SEMUA SEKOLAH');
             if (elFilterPeriode.value !== 'ALL') bagian.push(elFilterPeriode.value);
@@ -2210,9 +2237,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const search = elSearchInput.value.trim().toLowerCase();
             const rows = filteredData.filter(r => !search || r.namaSiswa.toLowerCase().includes(search) || String(r.nisn).toLowerCase().includes(search) || r.sekolah.toLowerCase().includes(search));
             if (!rows.length) { showModal('Tidak Ada Data', 'Tidak ada baris yang cocok dengan filter saat ini, jadi belum ada yang bisa diunduh. Ubah filter lalu coba lagi.', 'warning'); return; }
-            const head = ['NO', 'NISN', 'NAMA SISWA', 'NAMA SEKOLAH', 'PERIODE', 'TINGKAT', 'KECAMATAN', 'NAMA PENDAMPING'];
+            const head = ['NO', 'NISN', 'NAMA SISWA', 'NAMA SEKOLAH', 'PERIODE', 'TINGKAT', 'KECAMATAN', 'NAMA PENDAMPING', 'PENANGGUNG JAWAB ABSEN'];
             const lines = [head.map(csvSel).join(';')];
-            rows.forEach((r, i) => lines.push([String(i + 1), csvTeks(r.nisn === '-' ? '' : r.nisn), csvSel(r.namaSiswa), csvSel(r.sekolah), csvSel(r.periodePenyaluran), csvSel(kelasAngka(r.tingkatPendidikan)), csvSel(r.kecamatan), csvSel(r.pendamping)].join(';')));
+            rows.forEach((r, i) => lines.push([String(i + 1), csvTeks(r.nisn === '-' ? '' : r.nisn), csvSel(r.namaSiswa), csvSel(r.sekolah), csvSel(r.periodePenyaluran), csvSel(kelasAngka(r.tingkatPendidikan)), csvSel(r.kecamatan), csvSel(r.pendamping), csvSel(r.pj || 'Belum Ada')].join(';')));
             // pemisah titik koma + BOM UTF-8: terbuka rapi di Excel (pengaturan Indonesia) dan Google Sheets
             const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
             const url = URL.createObjectURL(blob), a = document.createElement('a');
