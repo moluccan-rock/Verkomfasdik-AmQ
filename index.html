@@ -899,11 +899,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl">
                     <div class="flex flex-wrap gap-2 mb-3">
                         <select id="stKec" aria-label="Filter kecamatan"></select>
+                        <select id="stPj" aria-label="Filter penanggung jawab absen sekolah"></select>
                         <select id="stFilter" aria-label="Filter status">
-                            <option value="*">Semua status</option><option value="belum">Belum mengisi</option><option value="isi">Absen terisi, bukti belum</option><option value="bukti">Bukti sudah diunggah</option>
+                            <option value="*">Semua status</option><option value="nobukti">Belum unggah bukti (semua)</option><option value="belum">Belum mengisi</option><option value="isi">Absen terisi, bukti belum</option><option value="bukti">Bukti sudah diunggah</option>
                         </select>
                         <input id="stCari" type="search" placeholder="Cari nama sekolah..." style="flex:1;min-width:180px">
                     </div>
+                    <div id="stPjRingkas" class="mb-3"></div>
                     <div id="stDaftar"></div>
                 </div>
             </div>
@@ -1091,7 +1093,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 30;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 33;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1382,7 +1384,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stEl('stMuat').addEventListener('click', stMuat);
             stEl('stBulan').addEventListener('change', stMuat); stEl('stTahun').addEventListener('change', stMuat);
             stEl('stCsv').addEventListener('click', stUnduh);
-            ['stKec', 'stFilter'].forEach(id => stEl(id).addEventListener('change', stGambar));
+            ['stKec', 'stPj', 'stFilter'].forEach(id => stEl(id).addEventListener('change', stGambar));
             stEl('stCari').addEventListener('input', stGambar);
             if (!API_URL_TIM) { stPesan('Halaman ini belum terhubung ke API, jadi status sekolah tidak tersedia.'); return; }
             stMuat();
@@ -1396,6 +1398,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ST.data = r; const kec = [...new Set(r.sekolah.map(x => x.kecamatan))].sort(), cur = stEl('stKec').value;
                 stEl('stKec').innerHTML = '<option value="*">Semua kecamatan</option>' + kec.map(k => `<option value="${stEsc(k)}">${stEsc(k)}</option>`).join('');
                 if (kec.includes(cur)) stEl('stKec').value = cur;
+                const pjCur = stEl('stPj').value, pjAda = [...new Set(r.sekolah.map(x => x.pj).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+                stEl('stPj').innerHTML = '<option value="*">Semua penanggung jawab</option>' + pjAda.map(k => `<option value="${stEsc(k)}">${stEsc(k)}</option>`).join('') + (r.sekolah.some(x => !x.pj) ? '<option value="-">(Belum ditetapkan)</option>' : '');
+                if (pjCur === '-' || pjAda.includes(pjCur)) stEl('stPj').value = pjCur;
                 stEl('stHasil').classList.remove('hidden'); stGambar();
             } catch (e) { stPesan(e.message); } finally { b.disabled = false; b.innerHTML = lama; }
         }
@@ -1575,8 +1580,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         function stStatus(x) { return x.bukti ? 'bukti' : (x.terisi > 0 ? 'isi' : 'belum'); }
         function stBaris() {
             if (!ST.data) return [];
-            const kec = stEl('stKec').value, f = stEl('stFilter').value, q = stEl('stCari').value.trim().toLowerCase();
-            return ST.data.sekolah.filter(x => (kec === '*' || x.kecamatan === kec) && (f === '*' || stStatus(x) === f) && (!q || String(x.sekolah).toLowerCase().includes(q)));
+            const kec = stEl('stKec').value, pj = stEl('stPj').value, f = stEl('stFilter').value, q = stEl('stCari').value.trim().toLowerCase();
+            return ST.data.sekolah.filter(x => (kec === '*' || x.kecamatan === kec) && (pj === '*' || (pj === '-' ? !x.pj : x.pj === pj)) && (f === '*' || (f === 'nobukti' ? !x.bukti : stStatus(x) === f)) && (!q || String(x.sekolah).toLowerCase().includes(q)));
         }
         function stGambar() {
             const d = ST.data; if (!d) return;
@@ -1585,22 +1590,41 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div class="chip"><span class="mut text-xs font-bold">BUKTI SUDAH DIUNGGAH</span><b style="color:#059669">${d.sudahBukti}</b></div>
                 <div class="chip"><span class="mut text-xs font-bold">ABSEN TERISI, BUKTI BELUM</span><b style="color:#d97706">${n('isi')}</b></div>
                 <div class="chip"><span class="mut text-xs font-bold">BELUM MENGISI</span><b style="color:#dc2626">${n('belum')}</b></div>`;
+            stPjRingkasan();
             const rows = stBaris(), rank = { belum: 0, isi: 1, bukti: 2 };
             rows.sort((a, b) => rank[stStatus(a)] - rank[stStatus(b)] || String(a.sekolah).localeCompare(String(b.sekolah)));
             stEl('stDaftar').innerHTML = rows.length ? rows.map(x => {
                 const s = stStatus(x), bd = s === 'bukti' ? '<span class="badge g">Bukti diunggah</span>' : s === 'isi' ? '<span class="badge y">Absen terisi, bukti belum</span>' : '<span class="badge r">Belum mengisi</span>';
-                const info = [x.kecamatan, 'kode ' + x.kode, x.jumlahSiswa + ' siswa', 'absen terisi ' + x.terisi + '/' + x.jumlahSiswa].join(' · ');
+                const info = [x.kecamatan, 'PJ: ' + (x.pj || 'belum ditetapkan'), 'kode ' + x.kode, x.jumlahSiswa + ' siswa', 'absen terisi ' + x.terisi + '/' + x.jumlahSiswa].join(' · ');
                 const ket = x.bukti ? ('Diunggah ' + stEsc(x.waktuBukti) + (x.pengisi ? ' oleh ' + stEsc(x.pengisi) : '')) : '';
                 const lnk = x.bukti && x.urlBukti ? `<a class="lnk" href="${stEsc(x.urlBukti)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-file-pdf"></i> Buka PDF</a>` : '';
                 return `<div class="row"><div><div class="nm">${stEsc(x.sekolah)}</div><div class="mt mut">${stEsc(info)}</div>${ket ? `<div class="mt mut">${ket}</div>` : ''}</div><div class="aksi">${bd}${lnk}</div></div>`;
             }).join('') : '<p class="mut text-sm">Tidak ada sekolah yang cocok dengan filter.</p>';
         }
+        // Ringkasan per penanggung jawab: berapa sekolah yang menjadi tanggung jawabnya dan berapa yang belum unggah bukti
+        function stPjRingkasan() {
+            const el = stEl('stPjRingkas'), d = ST.data; if (!el || !d) return;
+            const kec = stEl('stKec').value, g = {};
+            d.sekolah.filter(x => kec === '*' || x.kecamatan === kec).forEach(x => {
+                const k = x.pj || '-'; const o = g[k] || (g[k] = { n: 0, belum: 0, sekolah: [] });
+                o.n++; if (!x.bukti) { o.belum++; o.sekolah.push(x.sekolah); }
+            });
+            const ks = Object.keys(g).sort((a, b) => (g[b].belum - g[a].belum) || (a === '-') - (b === '-') || a.localeCompare(b));
+            if (!ks.length || (ks.length === 1 && ks[0] === '-')) { el.innerHTML = ''; return; }
+            el.innerHTML = '<div class="mut text-xs font-bold mb-2">BELUM UNGGAH BUKTI PER PENANGGUNG JAWAB (ketuk untuk menyaring)</div>' + ks.map(k => {
+                const o = g[k], nm = k === '-' ? '(Belum ditetapkan)' : k, aktif = stEl('stPj').value === k;
+                return `<button type="button" class="chip" data-pj="${stEsc(k)}" style="cursor:pointer;text-align:left;margin:0 6px 6px 0;${aktif ? 'outline:2px solid #2563eb;' : ''}" title="${stEsc(o.sekolah.join(', '))}"><span class="mut text-xs font-bold">${stEsc(nm)}</span><b style="font-size:1.05rem;color:${o.belum ? '#dc2626' : '#059669'}">${o.belum} belum unggah</b><span class="mut text-xs"> dari ${o.n} sekolah</span></button>`;
+            }).join('');
+            el.querySelectorAll('button[data-pj]').forEach(b => b.addEventListener('click', () => {
+                const sel = stEl('stPj'), v = b.getAttribute('data-pj'); sel.value = sel.value === v ? '*' : v; stGambar();
+            }));
+        }
         function stUnduh() {
             const rows = stBaris(); if (!rows.length) { stPesan('Tidak ada data untuk diunduh.'); return; }
             const lbl = { bukti: 'Bukti diunggah', isi: 'Absen terisi, bukti belum', belum: 'Belum mengisi' };
             const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-            const baris = [['KODE', 'SEKOLAH', 'KECAMATAN', 'JUMLAH SISWA', 'ABSEN TERISI', 'STATUS', 'WAKTU UNGGAH BUKTI', 'PENGISI', 'SUMBER', 'TAUTAN PDF']]
-                .concat(rows.map(x => [x.kode, x.sekolah, x.kecamatan, x.jumlahSiswa, x.terisi, lbl[stStatus(x)], x.waktuBukti, x.pengisi, x.sumber, x.urlBukti]));
+            const baris = [['KODE', 'SEKOLAH', 'KECAMATAN', 'PENANGGUNG JAWAB ABSEN', 'JUMLAH SISWA', 'ABSEN TERISI', 'STATUS', 'WAKTU UNGGAH BUKTI', 'PENGISI', 'SUMBER', 'TAUTAN PDF']]
+                .concat(rows.map(x => [x.kode, x.sekolah, x.kecamatan, x.pj || '', x.jumlahSiswa, x.terisi, lbl[stStatus(x)], x.waktuBukti, x.pengisi, x.sumber, x.urlBukti]));
             const csv = '\uFEFF' + baris.map(r => r.map(q).join(';')).join('\r\n');
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
             a.download = 'STATUS_SEKOLAH_' + stNamaBulan[Number(stEl('stBulan').value) - 1].toUpperCase() + '_' + stEl('stTahun').value + '.csv';
@@ -1795,6 +1819,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         function showLoadError(errors) {
             const p = document.getElementById('loadErrorPanel');
+            if (API_URL_TIM) {
+                const alasan = errors.length ? errors[errors.length - 1] : 'Tidak ada keterangan dari server.';
+                const jaringan = /terhubung|Failed to fetch|NetworkError|Load failed|abort|menjawab (5\d\d|429)/i.test(alasan);
+                clearTimeout(retryTimer); if (jaringan) retryTimer = setTimeout(() => { if (!fetching && dataSource === 'none') fetchSheetData({ auto: true }); }, 15000);
+                p.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="text-rose-500 text-xl mt-0.5"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-bold text-sm text-rose-700 dark:text-rose-300">${jaringan ? 'Sinyal internet terputus atau lambat' : 'Data siswa belum bisa dimuat dari server'}</h3>
+                        <p class="text-xs mt-1.5 text-slate-600 dark:text-gray-300">${jaringan ? 'Dashboard akan mencoba lagi sendiri tiap 15 detik sampai sinyal kembali, Anda tidak perlu menyegarkan halaman. ' : 'Anda sudah berhasil masuk, tetapi server belum bisa mengirim data siswa. '}Dashboard sengaja tidak menampilkan data apa pun sampai data asli berhasil dimuat, agar laporan resmi tidak salah.</p>
+                        <p class="text-xs mt-2 rounded-lg bg-amber-500/15 border border-amber-500/40 px-3 py-2 text-amber-800 dark:text-amber-200 break-words"><b>Keterangan dari server:</b> ${esc(alasan)}</p>
+                        <ol class="list-decimal ml-4 mt-2 space-y-1 text-xs text-slate-700 dark:text-gray-200">
+                            <li>Klik <b>Coba Lagi</b> (server Google kadang lambat saat baru bangun).</li>
+                            <li>Jika tetap gagal, <b>sampaikan keterangan di atas ke admin</b>. Admin menjalankan fungsi <b>diagnosaMaster</b> di Apps Script untuk mencari penyebabnya.</li>
+                            <li>Untuk keperluan mendesak, unduh sheet master sebagai CSV lalu klik <b>Buka File CSV</b>.</li>
+                        </ol>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <button type="button" onclick="fetchSheetData()" class="px-4 py-2 rounded-xl btn-pri text-xs font-bold"><i class="fa-solid fa-rotate mr-1.5"></i> Coba Lagi</button>
+                            <button type="button" onclick="document.getElementById('csvFileInput').click()" class="px-4 py-2 rounded-xl glass-input text-xs font-bold"><i class="fa-solid fa-file-csv mr-1.5"></i> Buka File CSV</button>
+                        </div>
+                        <details class="mt-3 text-[11px] text-slate-500 dark:text-gray-400">
+                            <summary class="cursor-pointer font-semibold">Detail teknis (untuk bantuan)</summary>
+                            <ul class="list-disc ml-4 mt-1 space-y-0.5 break-words">${errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>
+                        </details>
+                    </div>
+                </div>`;
+                p.classList.remove('hidden');
+                return;
+            }
             p.innerHTML = `
                 <div class="flex items-start gap-3">
                     <div class="text-rose-500 text-xl mt-0.5"><i class="fa-solid fa-triangle-exclamation"></i></div>
