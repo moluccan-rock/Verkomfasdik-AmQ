@@ -1103,7 +1103,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         const GVIZ_CSV_URL = `${SHEET_BASE}/gviz/tq?tqx=out:csv&headers=1&gid=${GID}`;
         const EXPORT_CSV_URL = `${SHEET_BASE}/export?format=csv&gid=${GID}`;
         const GVIZ_JSON_BASE = `${SHEET_BASE}/gviz/tq?headers=1&gid=${GID}&tqx=out:json;responseHandler:`;
-        const APP_BUILD = 39;                           // naik 1 setiap file baru diunggah ke GitHub
+        const APP_BUILD = 40;                           // naik 1 setiap file baru diunggah ke GitHub
         const APP_VERSION = 'v.' + String(APP_BUILD).padStart(2, '0');
         const FETCH_TIMEOUT_MS = 10000;                 // batas tunggu per jalur (internet lambat)
         const CACHE_KEY = 'esim_verkom_cache_v2';       // salinan data terakhir yang berhasil dimuat
@@ -1478,7 +1478,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const nk = ADM.sekolah.filter(x => x.terkunci).length;
             stEl('admKunciInfo').innerHTML = nk ? `<div class="err" style="background:rgba(239,68,68,.14);color:inherit;border-color:rgba(239,68,68,.5)"><b><i class="fa-solid fa-lock"></i> ${nk} sekolah terkunci</b> karena salah PIN berulang. Klik <b>Buka kunci</b> pada sekolah terkait (kuncinya juga terbuka sendiri setelah 15 menit).</div>` : '';
             const rows = ADM.sekolah.filter(x => !q || (x.kode + ' ' + x.nama + ' ' + x.kecamatan).toLowerCase().includes(q)).sort((p1, p2) => (p2.terkunci ? 1 : 0) - (p1.terkunci ? 1 : 0));
-            stEl('admSekolah').innerHTML = rows.length ? rows.map(x => `<div class="admrow"><div style="min-width:0;flex:1 1 220px"><div class="nm" style="font-weight:700;font-size:13.5px">${stEsc(x.kode)} · ${stEsc(x.nama)}</div><div class="mut" style="font-size:12px">${stEsc(x.kecamatan)} ${x.aktif ? '' : '· <b style="color:#d97706">NONAKTIF</b>'} ${x.terkunci ? '· <span class="badge r"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''} ${x.bisaLihat ? '' : '· PIN lama (tidak bisa dilihat)'}</div></div>
+            stEl('admSekolah').innerHTML = rows.length ? rows.map(x => `<div class="admrow"><div style="min-width:0;flex:1 1 220px"><div class="nm" style="font-weight:700;font-size:13.5px${x.bisaLihat ? ';cursor:pointer;text-decoration:underline dotted' : ''}" ${x.bisaLihat ? `data-adm="lihat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" title="Ketuk untuk melihat PIN"` : ''}>${stEsc(x.kode)} · ${stEsc(x.nama)}</div><div class="mut" style="font-size:12px">${stEsc(x.kecamatan)} ${x.aktif ? '' : '· <b style="color:#d97706">NONAKTIF</b>'} ${x.terkunci ? '· <span class="badge r"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''} ${x.bisaLihat ? '' : '· PIN lama (tidak bisa dilihat)'}</div></div>
                 <div class="btns">${x.terkunci ? `<button type="button" class="sbtn sm" data-adm="buka" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" style="background:#dc2626;color:#fff"><i class="fa-solid fa-lock-open"></i> Buka kunci</button>` : ''}<button type="button" class="sbtn sm" data-adm="lihat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" ${x.bisaLihat ? '' : 'disabled'}>Lihat PIN</button><button type="button" class="sbtn sm alt" data-adm="buat" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}">PIN baru</button><button type="button" class="sbtn sm ${x.aktif ? 'red' : ''}" data-adm="aktif" data-jenis="sekolah" data-id="${stEsc(x.kode)}" data-nama="${stEsc(x.nama)}" data-set="${x.aktif ? '0' : '1'}">${x.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></div></div>`).join('') : '<p class="mut text-sm">Tidak ada sekolah yang cocok.</p>';
         }
         // --- jendela konfirmasi kode admin ---
@@ -1488,6 +1488,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             stEl('admMForm').style.display = ''; stEl('admMHasil').innerHTML = ''; stEl('admMErr').classList.remove('on');
             stEl('admMOk').style.display = ''; stEl('admMOk').disabled = false; stEl('admMOk').textContent = 'Lanjut'; stEl('admMBatal').textContent = 'Batal';
             stEl('admModal').classList.add('on'); setTimeout(() => stEl('admMKode').focus(), 80);
+        }
+        // Jendela hasil langsung (tanpa kode admin): dipakai untuk melihat PIN sekolah
+        async function admModalLangsung(judul, pesan, ambil) {
+            ADM.aksi = null; ADM.setelah = null;
+            stEl('admMJudul').textContent = judul; stEl('admMPesan').textContent = pesan || ''; stEl('admMForm').style.display = 'none';
+            stEl('admMHasil').innerHTML = '<p class="note">Memuat...</p>'; stEl('admMErr').classList.remove('on');
+            stEl('admMOk').style.display = 'none'; stEl('admMBatal').textContent = 'Tutup'; stEl('admModal').classList.add('on');
+            try {
+                const h = await ambil();
+                if (h.galat) stEl('admMHasil').innerHTML = '<div class="err">' + stEsc(h.galat) + '</div>';
+                else { stEl('admMHasil').innerHTML = h.html; if (h.pesan) stEl('admMPesan').textContent = h.pesan; }
+            } catch (e) { stEl('admMHasil').innerHTML = '<div class="err">' + stEsc(e.message) + '</div>'; }
         }
         function admModalTutup() { stEl('admModal').classList.remove('on'); const f = ADM.setelah; ADM.setelah = null; ADM.aksi = null; if (f) f(); }
         async function admModalOk() {
@@ -1521,7 +1533,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 admApi({ aksi: 'adminAktif', jenis, id, aktif }).then(r => { if (!r.ok) admErr(r.pesan || 'Gagal.'); admMuat(); }).catch(e => { admErr(e.message); admMuat(); });
                 return;
             }
-            if (a === 'lihat') {
+            if (a === 'lihat' && jenis === 'sekolah') {
+                admModalLangsung('PIN sekolah: ' + nama, '', async () => {
+                    const r = await admApi({ aksi: 'adminLihat', jenis, id });
+                    return r.ok ? { html: admKotak(r.kode), pesan: nama } : { galat: r.pesan || 'Gagal.' };
+                });
+            } else if (a === 'lihat') {
                 admModalBuka((jenis === 'tim' ? 'Kode tim: ' : 'PIN sekolah: ') + nama, 'Ketik kode admin untuk menampilkan.', async kodeAdmin => {
                     const r = await admApi({ aksi: 'adminLihat', jenis, id, kodeAdmin });
                     return r.ok ? { html: admKotak(r.kode), pesan: nama } : { galat: r.pesan || 'Gagal.' };
@@ -1536,7 +1553,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
         }
         function admSemua(jenis) {
-            admModalBuka(jenis === 'tim' ? 'Semua kode tim' : 'Semua PIN sekolah', 'Ketik kode admin untuk menampilkan daftar lengkap.', async kodeAdmin => {
+            const buka = (jenis === 'tim' ? admModalBuka : (j, p, f) => admModalLangsung(j, '', () => f()));
+            buka(jenis === 'tim' ? 'Semua kode tim' : 'Semua PIN sekolah', 'Ketik kode admin untuk menampilkan daftar lengkap.', async kodeAdmin => {
                 const r = await admApi({ aksi: 'adminLihatSemua', jenis, kodeAdmin });
                 if (!r.ok) return { galat: r.pesan || 'Gagal.' };
                 const tbl = r.daftar.map(x => `<tr><td>${stEsc(x.id)}</td><td>${stEsc(x.nama)}${x.kecamatan ? '<br><small>' + stEsc(x.kecamatan) + '</small>' : ''}${x.aktif ? '' : ' <b>(nonaktif)</b>'}</td><td><b>${x.kode ? stEsc(x.kode) : '(lama)'}</b></td></tr>`).join('');
